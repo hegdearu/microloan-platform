@@ -1,0 +1,10 @@
+apiVersion: v2
+name: ganymede-g2-app
+description: A Helm chart for Ganymede demo app
+type: application
+version: 0.0.1-SNAPSHOT
+appVersion: "0.0.1"
+dependencies:
+  - name: common
+    version: 1.0.98
+    repository: '@chartrepo'
