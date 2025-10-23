@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>in.zeta.microloan</groupId>
-	<artifactId>microloan-platform</artifactId>
+	<artifactId>zea-opc-b03-microloan-platform-aravind</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>microloan-platform</name>
 	<description>Backend service for managing microloans, including loan creation, repayment tracking, and recovery workflows for financial institutions.</description>
