@@ -14,5 +14,5 @@ ENV APP $app
 ENV JAR_PATH "$DATA_PATH/$APP.jar"
 
 RUN mkdir -p "$LOGS_PATH/$APP" && chown -R $USERNAME:$USERNAME "$LOGS_PATH/$APP"
-COPY --chown=$USERNAME:$USERNAME ./target/$APP*.jar $JAR_PATH
+COPY --chown=$USERNAME:$USERNAME ./target/$APP-$version.jar $JAR_PATH
 USER $USERNAME:$USERNAME

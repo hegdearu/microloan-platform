@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: microloan-platform
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: zeta
+      POSTGRES_PASSWORD: zeta
+      POSTGRES_DB: microloan_platform
+    volumes:
+      - ../src/main/resources/db/migration/:/docker-entrypoint-initdb.d/
