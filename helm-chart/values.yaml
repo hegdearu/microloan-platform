@@ -1,0 +1,63 @@
+nameOverride: "microloan-platform-aravind"
+fullnameOverride: "microloan-platform-aravind"
+clusterName: cluster-name
+hpa:
+  enabled: false
+
+replicaCount: 1
+image:
+  repository: 813361731051.dkr.ecr.ap-south-1.amazonaws.com
+  repositoryPath: microloan-platform-aravind
+  pullPolicy: IfNotPresent
+  tag: 1.0.0
+
+disablePropertiesConfigMap: true
+
+envProperties:
+  javaXms: 128M
+  javaXmx: 512M
+  APP_NAME: microloan-platform-aravind
+  KINESIS_ACCESSKEY: vault:secrets/data/zone/common/logging#KINESIS_ACCESSKEY
+  KINESIS_SECRETKEY: vault:secrets/data/zone/common/logging#KINESIS_SECRETKEY
+  KINESIS_REGION: vault:secrets/data/zone/common/logging#KINESIS_REGION
+
+resources:
+  limits:
+    memory: 2Gi
+  requests:
+    cpu: 1
+    memory: 1Gi
+
+serviceAccountName: microloan-platform-aravind
+
+service:
+  targetPort: 8080
+  healthCheckPath: /actuator/health
+  livenessProbeInitialDelaySeconds: 60
+  readinessProbeInitialDelaySeconds: 60
+
+# Full health check URL: http://<<pod-ip>>:8080/health.check.path
+additionalPodAnnotations:
+  configmap.reloader.stakater.com/reload: "microloan-platform-aravind-env-configmap"
+  health.check.enable: "true"
+  health.check.module: http_2xx
+  health.check.path: "actuator/health"
+
+serviceMonitor:
+  enabled: true
+
+volumeMounts: []
+
+olympusLabels:
+  olympusCluster: cluster
+  olympusClusterBU: bu
+  olympusClusterTeam: team-name
+  olympusZone: zone-name
+  olympusZoneEnv: zone-env
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podSecurityContext: {}
+securityContext: {}
+volumes: {}
