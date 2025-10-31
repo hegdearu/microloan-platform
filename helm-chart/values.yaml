@@ -8,8 +8,8 @@ replicaCount: 1
 image:
   repository: 813361731051.dkr.ecr.ap-south-1.amazonaws.com
   repositoryPath: microloan-platform-aravind
-  pullPolicy: IfNotPresent
-  tag: 1.0.0
+  pullPolicy: Always
+  tag: 0.0.1-SNAPSHOT
 
 disablePropertiesConfigMap: true
 
@@ -20,6 +20,8 @@ envProperties:
   KINESIS_ACCESSKEY: vault:secrets/data/zone/common/logging#KINESIS_ACCESSKEY
   KINESIS_SECRETKEY: vault:secrets/data/zone/common/logging#KINESIS_SECRETKEY
   KINESIS_REGION: vault:secrets/data/zone/common/logging#KINESIS_REGION
+  LOGGING_PIPELINE: KINESIS_AND_SOUT
+  METRIC_LOG_FORMAT: JSON
 
 resources:
   limits:
@@ -31,17 +33,16 @@ resources:
 serviceAccountName: microloan-platform-aravind
 
 service:
+  port: 8080
   targetPort: 8080
-  healthCheckPath: /actuator/health
-  livenessProbeInitialDelaySeconds: 60
-  readinessProbeInitialDelaySeconds: 60
+  healthCheckPath: /health
 
 # Full health check URL: http://<<pod-ip>>:8080/health.check.path
 additionalPodAnnotations:
   configmap.reloader.stakater.com/reload: "microloan-platform-aravind-env-configmap"
   health.check.enable: "true"
   health.check.module: http_2xx
-  health.check.path: "actuator/health"
+  health.check.path: "/health"
 
 serviceMonitor:
   enabled: true

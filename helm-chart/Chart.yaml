@@ -1,9 +1,9 @@
 apiVersion: v2
-name: ganymede-g2-app
-description: A Helm chart for Ganymede demo app
+name: zea-opc-b03-microloan-platform-aravind
+description: A microloan distribution and recovery system
 type: application
 version: 0.0.1-SNAPSHOT
-appVersion: "0.0.1"
+appVersion: 0.0.1
 dependencies:
   - name: common
     version: 1.0.98
