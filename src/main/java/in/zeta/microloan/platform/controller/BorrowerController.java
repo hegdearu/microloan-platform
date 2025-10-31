@@ -24,9 +24,9 @@ public class BorrowerController {
     }
 
     @GetMapping("/{borrowerId}")
-    public ResponseEntity<BorrowerRegistrationResponse> getBorrowerDetails(@PathVariable String borrowerId) {
-        // Implementation goes here
-        return ResponseEntity.ok(new BorrowerRegistrationResponse());
+    public ResponseEntity<BorrowerResponseDTO> getBorrowerDetails(@PathVariable Long borrowerId) {
+        BorrowerResponseDTO response = borrowerService.getBorrowerById(borrowerId);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{borrowerId}")

@@ -10,4 +10,4 @@ services:
       POSTGRES_PASSWORD: zeta
       POSTGRES_DB: microloan_platform
     volumes:
-        - /Users/aravindh/IdeaProjects/microloan-platform/src/main/resources/db.migration/:/docker-entrypoint-initdb.d/
+        - /Users/aravindh/IdeaProjects/microloan-platform/src/main/resources/db/migration/:/docker-entrypoint-initdb.d/

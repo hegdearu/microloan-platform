@@ -41,7 +41,7 @@ public class BorrowerRepository {
             .incomeDetails(rs.getString("income_details"))
             .profilePhotoUrl(rs.getString("profile_photo_url"))
             .creditScore(rs.getObject("credit_score", Integer.class))
-            .status(UserStatus.valueOf("status"))
+            .status(UserStatus.valueOf(rs.getString("status")))
             .isVerified(rs.getBoolean("is_verified"))
             .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
             .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
@@ -79,7 +79,12 @@ public class BorrowerRepository {
             return ps;
         }, keyHolder);
 
-        return keyHolder.getKey().longValue();
+        Object idObj = keyHolder.getKeys().get("id");
+        if (idObj instanceof Number) {
+            return ((Number) idObj).longValue();
+        } else {
+            throw new IllegalStateException("Failed to retrieve generated borrower id");
+        }
     }
 
     public Optional<Borrower> findById(Long id) {
