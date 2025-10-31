@@ -16,7 +16,7 @@ disablePropertiesConfigMap: true
 envProperties:
   javaXms: 128M
   javaXmx: 512M
-  APP_NAME: zea-opc-b03-microloan-platform-aravind
+  APP_NAME: ganymede-g2-app
   KINESIS_ACCESSKEY: vault:secrets/data/zone/common/logging#KINESIS_ACCESSKEY
   KINESIS_SECRETKEY: vault:secrets/data/zone/common/logging#KINESIS_SECRETKEY
   KINESIS_REGION: vault:secrets/data/zone/common/logging#KINESIS_REGION
