@@ -1,9 +1,10 @@
-package in.zeta.microloan.platform.model;
+package in.zeta.microloan.platform.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,26 +13,18 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Repayment {
+public class RepaymentResponseDTO {
     private Long id;
     private String receiptNumber;
     private Long loanId;
-    private Long borrowerId;
-    private Long householdId;
     private BigDecimal amount;
     private BigDecimal principalPaid;
     private BigDecimal interestPaid;
     private BigDecimal lateFeePaid;
     private BigDecimal advancePayment;
     private LocalDate paymentDate;
-    private PaymentMethod paymentMethod;
+    private String paymentMethod;
     private String transactionRef;
-    private String notes;
-    private PaymentStatus status;
-    private String receiptUrl;
-    private Long createdBy;
+    private String status;
     private LocalDateTime createdAt;
-    private LocalDateTime voidedAt;
-    private Long voidedBy;
-    private String voidReason;
 }

@@ -1,17 +1,11 @@
-package in.zeta.microloan.platform.model;
+package in.zeta.microloan.platform.dto;
 
+import in.zeta.microloan.platform.model.LoanProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -19,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoanProduct {
+public class LoanProductResponseDTO {
     private Long id;
     private String name;
     private String description;
@@ -35,7 +29,5 @@ public class LoanProduct {
     private String prepaymentChargesType;
     private BigDecimal prepaymentChargesValue;
     private LoanProductStatus status;
-    private Integer version;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }
