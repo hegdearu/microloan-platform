@@ -1,5 +1,6 @@
 package in.zeta.microloan.platform.service;
 
+import in.zeta.microloan.platform.dto.ApproveLoanApplicationRequestDTO;
 import in.zeta.microloan.platform.dto.LoanApplicationDTO;
 import in.zeta.microloan.platform.dto.LoanApplicationResponseDTO;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
@@ -100,7 +101,9 @@ public class LoanApplicationService {
     }
 
     @Transactional
-    public LoanApplicationResponseDTO approveApplication(Long id, Long approvedBy, BigDecimal approvedAmount) {
+    public LoanApplicationResponseDTO approveApplication(Long id, ApproveLoanApplicationRequestDTO request) {
+        Long approvedBy = request.getApprovedBy();
+        BigDecimal approvedAmount = request.getApprovedAmount();
         LoanApplication application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan application not found"));
 

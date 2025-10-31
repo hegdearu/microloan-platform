@@ -65,7 +65,7 @@ public class LoanApplicationRepository {
             return ps;
         }, keyHolder);
 
-        application.setId(keyHolder.getKey().longValue());
+        application.setId(((Number) keyHolder.getKeys().get("id")).longValue());
         return application;
     }
 
