@@ -38,7 +38,7 @@ public class LoanProductRepository {
             .maxLateFeePercent(rs.getBigDecimal("max_late_fee_percent"))
             .prepaymentChargesType(rs.getString("prepayment_charges_type"))
             .prepaymentChargesValue(rs.getBigDecimal("prepayment_charges_value"))
-            .status(LoanProductStatus.valueOf("status"))
+            .status(LoanProductStatus.valueOf(rs.getString("status")))
             .version(rs.getInt("version"))
             .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
             .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
@@ -91,7 +91,12 @@ public class LoanProductRepository {
             return ps;
         }, keyHolder);
 
-        return keyHolder.getKey().longValue();
+        Object idObj = keyHolder.getKeys().get("id");
+        if (idObj instanceof Number) {
+            return ((Number) idObj).longValue();
+        } else {
+            throw new IllegalStateException("Failed to retrieve generated Product id");
+        }
     }
 
     public void update(LoanProduct product) {

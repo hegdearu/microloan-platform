@@ -1,14 +1,14 @@
-nameOverride: "microloan-platform-aravind"
-fullnameOverride: "microloan-platform-aravind"
-clusterName: cluster-name
+nameOverride: "zea-opc-b03-microloan-platform-aravind"
+fullnameOverride: "zea-opc-b03-microloan-platform-aravind"
+clusterName: zea-opc-b03-microloan-platform-aravind
 hpa:
   enabled: false
 
 replicaCount: 1
 image:
   repository: 813361731051.dkr.ecr.ap-south-1.amazonaws.com
-  repositoryPath: microloan-platform-aravind
-  pullPolicy: Always
+  repositoryPath: zea-opc-b03-microloan-platform-aravind
+  pullPolicy: IfNotPresent
   tag: 0.0.1-SNAPSHOT
 
 disablePropertiesConfigMap: true
@@ -16,7 +16,7 @@ disablePropertiesConfigMap: true
 envProperties:
   javaXms: 128M
   javaXmx: 512M
-  APP_NAME: microloan-platform-aravind
+  APP_NAME: zea-opc-b03-microloan-platform-aravind
   KINESIS_ACCESSKEY: vault:secrets/data/zone/common/logging#KINESIS_ACCESSKEY
   KINESIS_SECRETKEY: vault:secrets/data/zone/common/logging#KINESIS_SECRETKEY
   KINESIS_REGION: vault:secrets/data/zone/common/logging#KINESIS_REGION
@@ -36,6 +36,8 @@ service:
   port: 8080
   targetPort: 8080
   healthCheckPath: /health
+  livenessProbeInitialDelaySeconds: 60
+  readinessProbeInitialDelaySeconds: 60
 
 # Full health check URL: http://<<pod-ip>>:8080/health.check.path
 additionalPodAnnotations:

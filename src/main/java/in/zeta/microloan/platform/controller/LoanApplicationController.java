@@ -1,7 +1,9 @@
 package in.zeta.microloan.platform.controller;
 
+import in.zeta.microloan.platform.dto.ApproveLoanApplicationRequestDTO;
 import in.zeta.microloan.platform.dto.LoanApplicationDTO;
 import in.zeta.microloan.platform.dto.LoanApplicationResponseDTO;
+import in.zeta.microloan.platform.dto.RejectLoanApplicationRequestDTO;
 import in.zeta.microloan.platform.service.LoanApplicationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,17 +43,15 @@ public class LoanApplicationController {
     }
 
     @PutMapping("/{id}/approve")
-    public ResponseEntity<LoanApplicationResponseDTO> approveApplication(@PathVariable Long id, @RequestBody Map<String, Object> request) {
-        Long approvedBy = Long.valueOf(request.get("approvedBy").toString());
-        BigDecimal approvedAmount = new BigDecimal(request.get("approvedAmount").toString());
+    public ResponseEntity<LoanApplicationResponseDTO> approveApplication(@PathVariable Long id, @RequestBody ApproveLoanApplicationRequestDTO request) {
 
-        LoanApplicationResponseDTO response = applicationService.approveApplication(id, approvedBy, approvedAmount);
+        LoanApplicationResponseDTO response = applicationService.approveApplication(id, request);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/reject")
-    public ResponseEntity<Void> rejectApplication(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        String rejectionReason = request.get("rejectionReason");
+    public ResponseEntity<Void> rejectApplication(@PathVariable Long id, @RequestBody RejectLoanApplicationRequestDTO request) {
+        String rejectionReason = request.getRejectionReason();
         applicationService.rejectApplication(id, rejectionReason);
         return ResponseEntity.ok(null);
     }
