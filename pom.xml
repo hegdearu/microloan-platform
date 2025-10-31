@@ -45,6 +45,16 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>jakarta.validation</groupId>
+			<artifactId>jakarta.validation-api</artifactId>
+			<version>3.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>in.zeta</groupId>
+			<artifactId>spring-boot-commons</artifactId>
+			<version>5.2.6</version>
+		</dependency>
 	</dependencies>
 
 	<build>
