@@ -14,18 +14,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DaoConfig {
 
     @Bean
-    public GenericPostgresDAO getGenericPostgresDAO(@Value("${postgres.jdbc.pool.size}") int poolSize,
-                                                    BasicDataSource basicDataSource) {
-        return new GenericPostgresDAO(basicDataSource, poolSize);
-    }
-
-    @Bean
-    public BasicDataSource getBasicDataSource(@Value("${postgres.jdbc.url}") String url,
-                                              @Value("${postgres.jdbc.username}") String username,
-                                              @Value("${postgres.jdbc.password}") String password,
-                                              @Value("${postgres.jdbc.driver}") String driver,
-                                              @Value("${postgres.jdbc.time.between.eviction.runs.millis}") long timeBetweenEvictionRunsMillis,
-                                              @Value("${postgres.jdbc.pool.size}") int poolSize) {
+    public BasicDataSource getBasicDataSource(@Value("${spring.datasource.url}") String url,
+                                              @Value("${spring.datasource.username}") String username,
+                                              @Value("${spring.datasource.password}") String password,
+                                              @Value("${spring.datasource.driver-class-name}") String driver,
+                                              @Value("${spring.datasource.hikari.time-between-eviction-runs-millis}") long timeBetweenEvictionRunsMillis,
+                                              @Value("${spring.datasource.hikari.maximum-pool-size}") int poolSize) {
         checkNotNull(driver, "PG driver can't be null");
         checkNotNull(url, "DB url can't be null");
 
