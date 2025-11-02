@@ -28,13 +28,15 @@ public class OverdueDetectionJob {
     private final LoanRepository loanRepository;
     private final RepaymentScheduleRepository scheduleRepository;
     private final OverdueTrackingRepository overdueRepository;
+    private final AtroposEventPublisherService atroposEventPublisher;
 
     public OverdueDetectionJob(LoanRepository loanRepository,
                                RepaymentScheduleRepository scheduleRepository,
-                               OverdueTrackingRepository overdueRepository) {
+                               OverdueTrackingRepository overdueRepository, AtroposEventPublisherService atroposEventPublisher) {
         this.loanRepository = loanRepository;
         this.scheduleRepository = scheduleRepository;
         this.overdueRepository = overdueRepository;
+        this.atroposEventPublisher = atroposEventPublisher;
     }
 
     @Scheduled(cron = "0 0 0 * * ?")
@@ -119,6 +121,7 @@ public class OverdueDetectionJob {
                                 existing.setLastCheckedAt(LocalDateTime.now());
                                 existing.setCollectionStage(finalCollectionStage);
                                 overdueRepository.update(existing);
+                                atroposEventPublisher.publishLoanOverdueEvent(loan, existing);
                             },
                             () -> {
                                 OverdueTracking tracking = OverdueTracking.builder()
@@ -134,6 +137,7 @@ public class OverdueDetectionJob {
                                         .collectionStage(finalCollectionStage)
                                         .build();
                                 overdueRepository.create(tracking);
+                                atroposEventPublisher.publishLoanOverdueEvent(loan, tracking);
                             }
                     );
 

@@ -26,16 +26,15 @@ public class RepaymentService {
     private final RepaymentRepository repaymentRepository;
     private final RepaymentScheduleRepository scheduleRepository;
     private final LoanRepository loanRepository;
-    private final EventPublisherService eventPublisher;
+    private final AtroposEventPublisherService atroposEventPublisher;
 
     public RepaymentService(RepaymentRepository repaymentRepository,
                             RepaymentScheduleRepository scheduleRepository,
-                            LoanRepository loanRepository,
-                            EventPublisherService eventPublisher) {
+                            LoanRepository loanRepository, AtroposEventPublisherService atroposEventPublisher) {
         this.repaymentRepository = repaymentRepository;
         this.scheduleRepository = scheduleRepository;
         this.loanRepository = loanRepository;
-        this.eventPublisher = eventPublisher;
+        this.atroposEventPublisher = atroposEventPublisher;
     }
 
     @Transactional
@@ -154,6 +153,10 @@ public class RepaymentService {
         Loan updatedLoan = loanRepository.findById(dto.getLoanId()).get();
         if (updatedLoan.getTotalOutstanding().compareTo(BigDecimal.ZERO) <= 0) {
             loanRepository.updateStatus(dto.getLoanId(), "CLOSED");
+
+            // Publish loan closed event
+            Loan closedLoan = loanRepository.findById(dto.getLoanId()).get();
+            atroposEventPublisher.publishLoanClosedEvent(closedLoan);
         } else if (updatedLoan.getStatus().name().equals("OVERDUE")) {
             // Check if no more overdue installments
             List<RepaymentSchedule> stillOverdue = pendingSchedules.stream()
@@ -164,7 +167,7 @@ public class RepaymentService {
             }
         }
 
-        eventPublisher.publishRepaymentReceivedEvent(repayment, loan);
+        atroposEventPublisher.publishLoanRepaymentEvent(repayment, loan);
 
         return mapToResponseDTO(repayment);
     }
