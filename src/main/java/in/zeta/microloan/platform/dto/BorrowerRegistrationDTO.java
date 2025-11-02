@@ -10,13 +10,14 @@ import java.time.LocalDate;
 public class BorrowerRegistrationDTO {
 
     @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 200, message = "Name must be between 2 and 200 characters")
     private String name;
 
-    @NotBlank(message = "Phone is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be 10 digits")
+    @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits")
     private String phone;
 
-    @Email(message = "Email must be valid")
+    @Email(message = "Invalid email format")
     private String email;
 
     @NotNull(message = "Date of birth is required")
@@ -24,21 +25,28 @@ public class BorrowerRegistrationDTO {
     private LocalDate dob;
 
     private Long householdId;
-    private String relationshipToHead;
+
+    private String relationshipToHead; // SELF, SPOUSE, PARENT, CHILD, SIBLING, OTHER
+
     private Boolean isHouseholdHead;
 
-    @DecimalMin(value = "0.00", message = "Income must be positive")
+    @NotNull(message = "Individual annual income is required")
+    @DecimalMin(value = "0.0", inclusive = false, message = "Income must be greater than 0")
     private BigDecimal individualAnnualIncome;
 
+    @NotBlank(message = "Occupation is required")
     private String occupation;
+
+    @NotBlank(message = "Address is required")
     private String address;
 
     @NotBlank(message = "ID proof type is required")
-    private String idProofType;
+    private String idProofType; // AADHAAR, PAN, VOTER_ID, PASSPORT, DRIVING_LICENSE
 
     @NotBlank(message = "ID proof number is required")
     private String idProofNumber;
 
     private String employmentDetails;
+
     private String incomeDetails;
 }

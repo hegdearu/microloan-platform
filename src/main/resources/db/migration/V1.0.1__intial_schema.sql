@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS public.households (
     total_members INTEGER DEFAULT 1,
     household_type VARCHAR(50),
     is_verified BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_households_pincode ON public.households(pincode);
@@ -41,8 +41,8 @@ CREATE TABLE IF NOT EXISTS public.borrowers (
     credit_score INTEGER,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     is_verified BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_borrowers_phone ON public.borrowers(phone);
@@ -67,8 +67,8 @@ CREATE TABLE IF NOT EXISTS public.loan_products (
     prepayment_charges_value DECIMAL(10, 2),
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     version INTEGER DEFAULT 1,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_loan_products_status ON public.loan_products(status);
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS public.loan_applications (
     approved_at TIMESTAMP,
     rejection_reason TEXT,
     expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_loan_applications_borrower ON public.loan_applications(borrower_id);
@@ -125,8 +125,8 @@ CREATE TABLE IF NOT EXISTS public.loans (
     agreement_url TEXT,
     household_income_at_approval DECIMAL(15, 2),
     created_by BIGINT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_loans_borrower ON public.loans(borrower_id);
@@ -149,8 +149,8 @@ CREATE TABLE IF NOT EXISTS public.repayment_schedule (
     total_paid DECIMAL(15, 2) DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     paid_date DATE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE(loan_id, installment_number)
 );
 
@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS public.repayments (
     status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED',
     receipt_url TEXT,
     created_by BIGINT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_repayments_loan ON public.repayments(loan_id);
@@ -197,8 +197,8 @@ CREATE TABLE IF NOT EXISTS public.overdue_tracking (
     total_due DECIMAL(15, 2) NOT NULL,
     last_checked_at TIMESTAMP NOT NULL,
     collection_stage VARCHAR(30) NOT NULL DEFAULT 'SOFT_REMINDER',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_overdue_tracking_loan ON public.overdue_tracking(loan_id);
@@ -218,9 +218,29 @@ CREATE TABLE IF NOT EXISTS public.collection_activities (
     assigned_to BIGINT,
     activity_date TIMESTAMP NOT NULL,
     next_follow_up_date DATE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_collection_activities_loan ON public.collection_activities(loan_id);
 CREATE INDEX IF NOT EXISTS idx_collection_activities_date ON public.collection_activities(activity_date);
+
+-- ============= OPTIONAL: ADD TRIGGERS FOR AUTO-UPDATE OF updated_at =============
+-- You can add these triggers if you want updated_at to auto-update on record changes
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_households_updated_at BEFORE UPDATE ON public.households FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_borrowers_updated_at BEFORE UPDATE ON public.borrowers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_loan_products_updated_at BEFORE UPDATE ON public.loan_products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_loan_applications_updated_at BEFORE UPDATE ON public.loan_applications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_loans_updated_at BEFORE UPDATE ON public.loans FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_repayment_schedule_updated_at BEFORE UPDATE ON public.repayment_schedule FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_overdue_tracking_updated_at BEFORE UPDATE ON public.overdue_tracking FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER set_collection_activities_updated_at BEFORE UPDATE ON public.collection_activities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

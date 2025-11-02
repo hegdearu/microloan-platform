@@ -45,8 +45,8 @@ public class LoanApplicationRepository {
 
     public LoanApplication create(LoanApplication application) {
         String sql = "INSERT INTO public.loan_applications (application_number, borrower_id, " +
-                "product_id, requested_amount, purpose, preferred_tenure, status, expires_at, " +
-                "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "product_id, requested_amount, purpose, preferred_tenure, status, expires_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -60,8 +60,6 @@ public class LoanApplicationRepository {
             ps.setInt(6, application.getPreferredTenure());
             ps.setString(7, application.getStatus().name());
             ps.setTimestamp(8, java.sql.Timestamp.valueOf(application.getExpiresAt()));
-            ps.setTimestamp(9, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            ps.setTimestamp(10, java.sql.Timestamp.valueOf(LocalDateTime.now()));
             return ps;
         }, keyHolder);
 
@@ -81,6 +79,40 @@ public class LoanApplicationRepository {
         return jdbcTemplate.query(sql, rowMapper, borrowerId);
     }
 
+    public Optional<LoanApplication> findLatestByBorrowerId(Long borrowerId) {
+        String sql = "SELECT * FROM public.loan_applications WHERE borrower_id = ? " +
+                "ORDER BY created_at DESC LIMIT 1";
+        List<LoanApplication> results = jdbcTemplate.query(sql, rowMapper, borrowerId);
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    public List<LoanApplication> findByStatus(LoanApplicationStatus status) {
+        String sql = "SELECT * FROM public.loan_applications WHERE status = ? " +
+                "ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, rowMapper, status.name());
+    }
+
+    public List<LoanApplication> findAll() {
+        String sql = "SELECT * FROM public.loan_applications ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, rowMapper);
+    }
+
+    public List<LoanApplication> findPendingApplications() {
+        String sql = "SELECT * FROM public.loan_applications " +
+                "WHERE status IN ('PENDING_REVIEW', 'UNDER_VERIFICATION') " +
+                "AND expires_at > NOW() " +
+                "ORDER BY created_at ASC";
+        return jdbcTemplate.query(sql, rowMapper);
+    }
+
+    public List<LoanApplication> findExpiredApplications() {
+        String sql = "SELECT * FROM public.loan_applications " +
+                "WHERE status IN ('PENDING_REVIEW', 'UNDER_VERIFICATION') " +
+                "AND expires_at < NOW() " +
+                "ORDER BY expires_at DESC";
+        return jdbcTemplate.query(sql, rowMapper);
+    }
+
     public boolean hasPendingApplication(Long borrowerId) {
         String sql = "SELECT COUNT(*) FROM public.loan_applications WHERE borrower_id = ? " +
                 "AND status IN ('PENDING_REVIEW', 'UNDER_VERIFICATION')";
@@ -90,25 +122,54 @@ public class LoanApplicationRepository {
 
     public void approve(Long id, Long approvedBy, BigDecimal approvedAmount) {
         String sql = "UPDATE public.loan_applications SET status = ?, approved_amount = ?, " +
-                "approved_by = ?, approved_at = ?, updated_at = ? WHERE id = ?";
+                "approved_by = ?, approved_at = ? WHERE id = ?";
         jdbcTemplate.update(sql,
                 LoanApplicationStatus.APPROVED.name(),
                 approvedAmount,
                 approvedBy,
-                LocalDateTime.now(),
                 LocalDateTime.now(),
                 id
         );
     }
 
     public void reject(Long id, String rejectionReason) {
-        String sql = "UPDATE public.loan_applications SET status = ?, rejection_reason = ?, " +
-                "updated_at = ? WHERE id = ?";
+        String sql = "UPDATE public.loan_applications SET status = ?, rejection_reason = ? " +
+                "WHERE id = ?";
         jdbcTemplate.update(sql,
                 LoanApplicationStatus.REJECTED.name(),
                 rejectionReason,
-                LocalDateTime.now(),
                 id
         );
+    }
+
+    public void updateStatus(Long id, LoanApplicationStatus status) {
+        String sql = "UPDATE public.loan_applications SET status = ? WHERE id = ?";
+        jdbcTemplate.update(sql, status.name(), id);
+    }
+
+    public void delete(Long id) {
+        String sql = "DELETE FROM public.loan_applications WHERE id = ?";
+        jdbcTemplate.update(sql, id);
+    }
+
+    public int countByBorrowerAndStatus(Long borrowerId, LoanApplicationStatus status) {
+        String sql = "SELECT COUNT(*) FROM public.loan_applications " +
+                "WHERE borrower_id = ? AND status = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId, status.name());
+        return count != null ? count : 0;
+    }
+
+    public int countByStatus(LoanApplicationStatus status) {
+        String sql = "SELECT COUNT(*) FROM public.loan_applications WHERE status = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, status.name());
+        return count != null ? count : 0;
+    }
+
+    public List<LoanApplication> findExpiringApplications(int daysBeforeExpiry) {
+        String sql = "SELECT * FROM public.loan_applications " +
+                "WHERE status IN ('PENDING_REVIEW', 'UNDER_VERIFICATION') " +
+                "AND expires_at BETWEEN NOW() AND NOW() + INTERVAL '" + daysBeforeExpiry + " days' " +
+                "ORDER BY expires_at ASC";
+        return jdbcTemplate.query(sql, rowMapper);
     }
 }

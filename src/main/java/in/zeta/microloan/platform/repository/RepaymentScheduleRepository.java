@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -32,16 +31,17 @@ public class RepaymentScheduleRepository {
             .interestPaid(rs.getBigDecimal("interest_paid"))
             .lateFeePaid(rs.getBigDecimal("late_fee_paid"))
             .totalPaid(rs.getBigDecimal("total_paid"))
-            .status(InstallmentStatus.valueOf("status"))
+            .status(InstallmentStatus.valueOf(rs.getString("status")))
             .paidDate(rs.getDate("paid_date") != null ? rs.getDate("paid_date").toLocalDate() : null)
             .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
             .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
             .build();
 
     public void create(RepaymentSchedule schedule) {
+        // Removed created_at and updated_at - database handles these with DEFAULT NOW()
         String sql = "INSERT INTO public.repayment_schedule (loan_id, installment_number, due_date, " +
-                "principal_due, interest_due, total_due, status, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "principal_due, interest_due, total_due, status) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
                 schedule.getLoanId(),
@@ -50,9 +50,7 @@ public class RepaymentScheduleRepository {
                 schedule.getPrincipalDue(),
                 schedule.getInterestDue(),
                 schedule.getTotalDue(),
-                schedule.getStatus(),
-                LocalDateTime.now(),
-                LocalDateTime.now()
+                schedule.getStatus().name()
         );
     }
 
@@ -75,8 +73,8 @@ public class RepaymentScheduleRepository {
                 "late_fee_paid = late_fee_paid + ?, " +
                 "total_paid = principal_paid + interest_paid + late_fee_paid, " +
                 "status = ?, " +
-                "paid_date = ?, " +
-                "updated_at = ? WHERE id = ?";
+                "paid_date = ? " +
+                "WHERE id = ?";
 
         jdbcTemplate.update(sql,
                 principalPaid,
@@ -84,13 +82,12 @@ public class RepaymentScheduleRepository {
                 lateFeePaid,
                 status,
                 paidDate != null ? java.sql.Date.valueOf(paidDate) : null,
-                LocalDateTime.now(),
                 id
         );
     }
 
     public void updateStatus(Long id, String status) {
-        String sql = "UPDATE public.repayment_schedule SET status = ?, updated_at = ? WHERE id = ?";
-        jdbcTemplate.update(sql, status, LocalDateTime.now(), id);
+        String sql = "UPDATE public.repayment_schedule SET status = ? WHERE id = ?";
+        jdbcTemplate.update(sql, status, id);
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
@@ -47,44 +48,67 @@ public class BorrowerRepository {
             .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
             .build();
 
-    public Long create(Borrower borrower) {
-        String sql = "INSERT INTO public.borrowers (name, phone, email, dob, household_id, " +
-                "relationship_to_head, is_household_head, individual_annual_income, occupation, " +
-                "address, id_proof_type, id_proof_number, employment_details, income_details, " +
-                "status, is_verified, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    public Borrower create(Borrower borrower) {
+        String sql = """
+        INSERT INTO public.borrowers (
+            name, phone, email, dob, household_id,
+            relationship_to_head, is_household_head, individual_annual_income, occupation,
+            address, id_proof_type, id_proof_number, employment_details, income_details,
+            status, is_verified
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id, created_at, updated_at
+    """;
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                    borrower.setId(rs.getLong("id"));
+                    borrower.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    borrower.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    return borrower;
+                },
+                borrower.getName(),
+                borrower.getPhone(),
+                borrower.getEmail(),
+                java.sql.Date.valueOf(borrower.getDob()),
+                borrower.getHouseholdId(),
+                borrower.getRelationshipToHead(),
+                borrower.getIsHouseholdHead(),
+                borrower.getIndividualAnnualIncome(),
+                borrower.getOccupation(),
+                borrower.getAddress(),
+                borrower.getIdProofType(),
+                borrower.getIdProofNumber(),
+                borrower.getEmploymentDetails(),
+                borrower.getIncomeDetails(),
+                borrower.getStatus().name(),
+                borrower.getIsVerified());
+    }
 
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, borrower.getName());
-            ps.setString(2, borrower.getPhone());
-            ps.setString(3, borrower.getEmail());
-            ps.setDate(4, java.sql.Date.valueOf(borrower.getDob()));
-            ps.setObject(5, borrower.getHouseholdId());
-            ps.setString(6, borrower.getRelationshipToHead());
-            ps.setBoolean(7, borrower.getIsHouseholdHead());
-            ps.setBigDecimal(8, borrower.getIndividualAnnualIncome());
-            ps.setString(9, borrower.getOccupation());
-            ps.setString(10, borrower.getAddress());
-            ps.setString(11, borrower.getIdProofType());
-            ps.setString(12, borrower.getIdProofNumber());
-            ps.setString(13, borrower.getEmploymentDetails());
-            ps.setString(14, borrower.getIncomeDetails());
-            ps.setString(15, borrower.getStatus().name());
-            ps.setBoolean(16, borrower.getIsVerified());
-            ps.setTimestamp(17, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            ps.setTimestamp(18, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            return ps;
-        }, keyHolder);
+    public void update(Borrower borrower) {
+        String sql = "UPDATE public.borrowers SET name = ?, email = ?, address = ?, " +
+                "occupation = ?, individual_annual_income = ?, employment_details = ?, " +
+                "income_details = ?, status = ?, is_verified = ?, credit_score = ?, " +
+                "updated_at = ? WHERE id = ?";
 
-        Object idObj = keyHolder.getKeys().get("id");
-        if (idObj instanceof Number) {
-            return ((Number) idObj).longValue();
-        } else {
-            throw new IllegalStateException("Failed to retrieve generated borrower id");
-        }
+        jdbcTemplate.update(sql,
+                borrower.getName(),
+                borrower.getEmail(),
+                borrower.getAddress(),
+                borrower.getOccupation(),
+                borrower.getIndividualAnnualIncome(),
+                borrower.getEmploymentDetails(),
+                borrower.getIncomeDetails(),
+                borrower.getStatus().name(),
+                borrower.getIsVerified(),
+                borrower.getCreditScore(),
+                LocalDateTime.now(),
+                borrower.getId()
+        );
+    }
+
+    public void delete(Long id) {
+        String sql = "DELETE FROM public.borrowers WHERE id = ?";
+        jdbcTemplate.update(sql, id);
     }
 
     public Optional<Borrower> findById(Long id) {
@@ -100,17 +124,61 @@ public class BorrowerRepository {
     }
 
     public List<Borrower> findByHouseholdId(Long householdId) {
-        String sql = "SELECT * FROM public.borrowers WHERE household_id = ?";
+        String sql = "SELECT * FROM public.borrowers WHERE household_id = ? ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, rowMapper, householdId);
     }
 
+    public List<Borrower> findByStatus(UserStatus status) {
+        String sql = "SELECT * FROM public.borrowers WHERE status = ? ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, rowMapper, status.name());
+    }
+
+    public List<Borrower> findAll() {
+        String sql = "SELECT * FROM public.borrowers ORDER BY created_at DESC";
+        return jdbcTemplate.query(sql, rowMapper);
+    }
+
     public int countActiveLoansByBorrower(Long borrowerId) {
-        String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ? AND status IN ('ACTIVE', 'OVERDUE')";
-        return jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
+        String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ? " +
+                "AND status IN ('ACTIVE', 'OVERDUE')";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
+        return count != null ? count : 0;
+    }
+
+    public int countAllLoansByBorrower(Long borrowerId) {
+        String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
+        return count != null ? count : 0;
+    }
+
+    public int countClosedLoansByBorrower(Long borrowerId) {
+        String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ? AND status = 'CLOSED'";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
+        return count != null ? count : 0;
+    }
+
+    public BigDecimal getTotalDisbursedAmount(Long borrowerId) {
+        String sql = "SELECT COALESCE(SUM(principal_amount), 0) FROM public.loans " +
+                "WHERE borrower_id = ?";
+        return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
+    }
+
+    public BigDecimal getTotalOutstandingAmount(Long borrowerId) {
+        String sql = "SELECT COALESCE(SUM(total_outstanding), 0) FROM public.loans " +
+                "WHERE borrower_id = ? AND status IN ('ACTIVE', 'OVERDUE')";
+        return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
+    }
+
+    public BigDecimal getTotalPaidAmount(Long borrowerId) {
+        String sql = "SELECT COALESCE(SUM(total_paid), 0) FROM public.loans " +
+                "WHERE borrower_id = ?";
+        return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
     }
 
     public int countActiveLoansByHousehold(Long householdId) {
-        String sql = "SELECT COUNT(*) FROM public.loans WHERE household_id = ? AND status IN ('ACTIVE', 'OVERDUE')";
-        return jdbcTemplate.queryForObject(sql, Integer.class, householdId);
+        String sql = "SELECT COUNT(*) FROM public.loans WHERE household_id = ? " +
+                "AND status IN ('ACTIVE', 'OVERDUE')";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, householdId);
+        return count != null ? count : 0;
     }
 }

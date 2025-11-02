@@ -41,31 +41,31 @@ public class HouseholdRepository {
             .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
             .build();
 
-    public Long create(Household household) {
-        String sql = "INSERT INTO public.households (household_number, primary_address, pincode, city, state, " +
-                "total_annual_income, income_proof_type, total_members, household_type, is_verified, " +
-                "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    public Household create(Household household) {
+        String sql = """
+        INSERT INTO public.households (
+            household_number, primary_address, pincode, city, state,
+            total_annual_income, income_proof_type, total_members, household_type, is_verified
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id, created_at, updated_at
+    """;
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, household.getHouseholdNumber());
-            ps.setString(2, household.getPrimaryAddress());
-            ps.setString(3, household.getPincode());
-            ps.setString(4, household.getCity());
-            ps.setString(5, household.getState());
-            ps.setBigDecimal(6, household.getTotalAnnualIncome());
-            ps.setString(7, household.getIncomeProofType());
-            ps.setInt(8, household.getTotalMembers());
-            ps.setString(9, household.getHouseholdType());
-            ps.setBoolean(10, household.getIsVerified());
-            ps.setTimestamp(11, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            ps.setTimestamp(12, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            return ps;
-        }, keyHolder);
-
-        return ((Number) keyHolder.getKeys().get("id")).longValue();
+        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                    household.setId(rs.getLong("id"));
+                    household.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    household.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                    return household;
+                },
+                household.getHouseholdNumber(),
+                household.getPrimaryAddress(),
+                household.getPincode(),
+                household.getCity(),
+                household.getState(),
+                household.getTotalAnnualIncome(),
+                household.getIncomeProofType(),
+                household.getTotalMembers(),
+                household.getHouseholdType(),
+                household.getIsVerified());
     }
 
     public Optional<Household> findById(Long id) {
