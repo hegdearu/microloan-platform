@@ -30,22 +30,21 @@ public class LoanService {
     private final HouseholdRepository householdRepository;
     private final LoanApplicationRepository applicationRepository;
     private final RepaymentScheduleService scheduleService;
-    private final EventPublisherService eventPublisher;
+    private final AtroposEventPublisherService atroposEventPublisher;
 
     public LoanService(LoanRepository loanRepository,
                        LoanProductRepository productRepository,
                        BorrowerRepository borrowerRepository,
                        HouseholdRepository householdRepository,
                        LoanApplicationRepository applicationRepository,
-                       RepaymentScheduleService scheduleService,
-                       EventPublisherService eventPublisher) {
+                       RepaymentScheduleService scheduleService, AtroposEventPublisherService atroposEventPublisher) {
         this.loanRepository = loanRepository;
         this.productRepository = productRepository;
         this.borrowerRepository = borrowerRepository;
         this.householdRepository = householdRepository;
         this.applicationRepository = applicationRepository;
         this.scheduleService = scheduleService;
-        this.eventPublisher = eventPublisher;
+        this.atroposEventPublisher = atroposEventPublisher;
     }
 
     @Transactional
@@ -192,7 +191,7 @@ public class LoanService {
         }
 
         // Publish event
-        eventPublisher.publishLoanDisbursedEvent(loan);
+        atroposEventPublisher.publishLoanIssuedEvent(loan);
 
         // Fetch the loan again to get the timestamps
         return loanRepository.findById(loanId)
@@ -289,7 +288,7 @@ public class LoanService {
 
         loanRepository.updateStatus(id, "CANCELLED");
 
-        eventPublisher.publishLoanCancelledEvent(loan, reason);
+        atroposEventPublisher.publishLoanCancelledEvent(loan, reason);
     }
 
     private BigDecimal calculateProcessingFee(BigDecimal principalAmount, LoanProduct product) {

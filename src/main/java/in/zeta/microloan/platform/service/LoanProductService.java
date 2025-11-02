@@ -17,12 +17,9 @@ import java.util.stream.Collectors;
 public class LoanProductService {
 
     private final LoanProductRepository productRepository;
-    private final EventPublisherService eventPublisher;
 
-    public LoanProductService(LoanProductRepository productRepository,
-                              EventPublisherService eventPublisher) {
+    public LoanProductService(LoanProductRepository productRepository) {
         this.productRepository = productRepository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -48,8 +45,6 @@ public class LoanProductService {
 
         Long productId = productRepository.create(product);
         product.setId(productId);
-
-        eventPublisher.publishProductCreatedEvent(product);
 
         return mapToResponseDTO(product);
     }
@@ -97,8 +92,6 @@ public class LoanProductService {
 
         productRepository.update(product);
 
-        eventPublisher.publishProductUpdatedEvent(product);
-
         return mapToResponseDTO(product);
     }
 
@@ -109,7 +102,6 @@ public class LoanProductService {
 
         productRepository.delete(id);
 
-        eventPublisher.publishProductDeletedEvent(product);
     }
 
     private void validateProductData(LoanProductDTO dto) {

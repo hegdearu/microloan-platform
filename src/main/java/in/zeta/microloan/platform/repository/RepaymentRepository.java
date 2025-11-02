@@ -35,8 +35,8 @@ public class RepaymentRepository {
             .lateFeePaid(rs.getBigDecimal("late_fee_paid"))
             .advancePayment(rs.getBigDecimal("advance_payment"))
             .paymentDate(rs.getDate("payment_date").toLocalDate())
-            .paymentMethod(PaymentMethod.valueOf("payment_method"))
-            .transactionRef(rs.getString("transaction_ref"))
+            .paymentMethod(PaymentMethod.valueOf(rs.getString("payment_method")))
+            .transactionRef(rs.getString(rs.getString("transaction_ref")))
             .notes(rs.getString("notes"))
             .status(PaymentStatus.valueOf("status"))
             .receiptUrl(rs.getString("receipt_url"))
@@ -47,8 +47,8 @@ public class RepaymentRepository {
     public Long create(Repayment repayment) {
         String sql = "INSERT INTO public.repayments (receipt_number, loan_id, borrower_id, household_id, " +
                 "amount, principal_paid, interest_paid, late_fee_paid, advance_payment, payment_date, " +
-                "payment_method, transaction_ref, notes, status, created_by, created_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "payment_method, transaction_ref, notes, status, created_by) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -69,11 +69,11 @@ public class RepaymentRepository {
             ps.setString(13, repayment.getNotes());
             ps.setString(14, repayment.getStatus().name());
             ps.setObject(15, repayment.getCreatedBy());
-            ps.setTimestamp(16, java.sql.Timestamp.valueOf(LocalDateTime.now()));
             return ps;
         }, keyHolder);
 
-        return keyHolder.getKey().longValue();
+        Number key = (Number) keyHolder.getKeys().get("id");
+        return key.longValue();
     }
 
     public List<Repayment> findByLoanId(Long loanId) {

@@ -29,6 +29,8 @@ public class LoanApplicationService {
     private final LoanApplicationRepository applicationRepository;
     private final BorrowerRepository borrowerRepository;
     private final LoanProductRepository productRepository;
+    private final AtroposEventPublisherService atroposEventPublisher;
+
 
     @Value("${app.max-active-loans-per-borrower:3}")
     private int maxActiveLoans;
@@ -38,10 +40,11 @@ public class LoanApplicationService {
 
     public LoanApplicationService(LoanApplicationRepository applicationRepository,
                                   BorrowerRepository borrowerRepository,
-                                  LoanProductRepository productRepository) {
+                                  LoanProductRepository productRepository, AtroposEventPublisherService atroposEventPublisher) {
         this.applicationRepository = applicationRepository;
         this.borrowerRepository = borrowerRepository;
         this.productRepository = productRepository;
+        this.atroposEventPublisher = atroposEventPublisher;
     }
 
     @Transactional
@@ -203,6 +206,8 @@ public class LoanApplicationService {
         application.setApprovedBy(approvedBy);
         application.setApprovedAt(LocalDateTime.now());
 
+        atroposEventPublisher.publishApplicationApprovedEvent(application, approvedBy);
+
         return mapToResponseDTO(application);
     }
 
@@ -221,6 +226,9 @@ public class LoanApplicationService {
         }
 
         applicationRepository.reject(id, rejectionReason);
+
+        application = applicationRepository.findById(id).get();
+        atroposEventPublisher.publishApplicationRejectedEvent(application, rejectionReason);
     }
 
     @Transactional
