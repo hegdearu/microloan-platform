@@ -1,11 +1,11 @@
 package in.zeta.microloan.platform.producer;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import in.zeta.oms.atropos.client.AtroposPublisherClient;
 import in.zeta.oms.atropos.model.PublishMode;
 import in.zeta.oms.atropos.response.PublishEventResponse;
 import in.zeta.spectra.capture.SpectraLogger;
+import olympus.pubsub.model.EventMetaData;
 import olympus.pubsub.model.OperationType;
 import olympus.pubsub.model.PubSubEvent;
 import olympus.pubsub.model.TopicScope;
@@ -14,10 +14,11 @@ import org.apache.http.NameValuePair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
-
-import static java.util.UUID.randomUUID;
 
 @Component
 public class EventProducer {
@@ -41,43 +42,57 @@ public class EventProducer {
         } catch (IllegalArgumentException e) {
             logger.warn("Invalid publish mode: " + publishModeString).log();
             throw new IllegalArgumentException("Invalid publish mode: " + publishModeString, e);
-        } catch (Exception e) {
-            logger.error("Unexpected error while getting publish mode: " + e.getMessage(), e).log();
-            throw new RuntimeException("Unexpected error while getting publish mode"+ e);
         }
     }
 
-    public CompletionStage<PublishEventResponse> publishEvent(String eventData, String topic) {
-        PubSubEvent.Builder builder = buildEvent(eventData, topic, TopicScope.SYSTEM);
-        logger.info("Publishing event to topic: " + topic)
-                .attr("eventId", randomUUID().toString())
-                .attr("topic", topic)
-                .attr("eventData", eventData)
-                .log();
-        return atroposPublisherClient.publish(builder, publishMode).thenApply(response -> {
-            logger.info("Publish response: " + response.toString()).log();
-            return response;
-        }).exceptionally(e -> {
-            logger.error("Error occurred while publishing Event")
-                    .attr("MESSAGE", e.toString())
-                    .attr("REQUEST_BODY", eventData)
-                    .log();
-            throw new RuntimeException(e.getMessage());
-        });
-    }
-
-    private PubSubEvent.Builder buildEvent(String eventData, String topic, TopicScope topicScope) {
-
-        return new PubSubEvent.Builder()
+    public CompletionStage<PublishEventResponse> publishEvent(
+            String objectId,
+            String topic,
+            Map<String, Object> data,
+            TopicScope topicScope
+    ) {
+        PubSubEvent.Builder builder = new PubSubEvent.Builder()
                 .tenant("0")
                 .topicScope(topicScope)
                 .objectType(topic)
-                .objectID("1")
+                .objectID(objectId)
                 .operationType(OperationType.CREATED)
                 .sourceAttributes(new NameValuePair[0])
                 .tags(List.of())
                 .stateMachineState("default")
-                .data(gson.fromJson(eventData, JsonElement.class));
+                .data(gson.toJsonTree(data));
+        return atroposPublisherClient.publish(builder, publishMode);
+    }
+
+    public CompletionStage<PublishEventResponse> publishScheduledEvent(
+            String objectId,
+            String objectType,
+            OperationType operationType,
+            Map<String, Object> data,
+            TopicScope topicScope,
+            int delayMinutes
+    ) {
+        String scheduledAt = ZonedDateTime.now()
+                .plusMinutes(delayMinutes)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ"));
+
+        EventMetaData metaData = EventMetaData.builder()
+                .schedulingType(EventMetaData.SchedulingType.ONCE)
+                .scheduledAt(scheduledAt)
+                .build();
+
+        PubSubEvent.Builder builder = new PubSubEvent.Builder()
+                .tenant("0")
+                .topicScope(topicScope)
+                .objectType(objectType)
+                .objectID(objectId)
+                .operationType(operationType)
+                .sourceAttributes(new NameValuePair[0])
+                .tags(List.of())
+                .stateMachineState("default")
+                .metaData(metaData)
+                .data(gson.toJsonTree(data));
+        logger.info("Publish result: " + atroposPublisherClient.publish(builder, publishMode)).log();
+        return atroposPublisherClient.publish(builder, publishMode);
     }
 }
-
