@@ -15,10 +15,13 @@ public class LoanApplication {
     private Long id;
     private String applicationNumber;
     private Long borrowerId;
+    private Long householdId;
     private Long productId;
     private BigDecimal requestedAmount;
     private String purpose;
     private Integer preferredTenure;
+    private BigDecimal householdAnnualIncome;
+    private BigDecimal existingHouseholdLoanTotal;
     private LoanApplicationStatus status;
     private Long approvedBy;
     private LocalDateTime approvedAt;

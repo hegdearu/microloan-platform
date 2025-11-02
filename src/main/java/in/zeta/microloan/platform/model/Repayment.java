@@ -17,6 +17,7 @@ public class Repayment {
     private String receiptNumber;
     private Long loanId;
     private Long borrowerId;
+    private Long householdId;
     private BigDecimal amount;
     private BigDecimal principalPaid;
     private BigDecimal interestPaid;

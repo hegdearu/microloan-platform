@@ -17,6 +17,7 @@ public class Loan {
     private String loanNumber;
     private Long applicationId;
     private Long borrowerId;
+    private Long householdId;
     private Long productId;
     private BigDecimal principalAmount;
     private BigDecimal interestRate;
@@ -38,6 +39,7 @@ public class Loan {
     private Integer gracePeriodDays;
     private BigDecimal lateFeePercent;
     private String agreementUrl;
+    private BigDecimal householdIncomeAtApproval;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

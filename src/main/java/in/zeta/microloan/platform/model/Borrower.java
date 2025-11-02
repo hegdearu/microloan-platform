@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -18,13 +19,17 @@ public class Borrower {
     private String phone;
     private String email;
     private LocalDate dob;
+    private Long householdId;
+    private String relationshipToHead;
+    private Boolean isHouseholdHead;
+    private BigDecimal individualAnnualIncome;
+    private String occupation;
     private String address;
     private String idProofType;
     private String idProofNumber;
     private String employmentDetails;
     private String incomeDetails;
     private String profilePhotoUrl;
-    private String digitalSignatureUrl;
     private Integer creditScore;
     private UserStatus status;
     private Boolean isVerified;
