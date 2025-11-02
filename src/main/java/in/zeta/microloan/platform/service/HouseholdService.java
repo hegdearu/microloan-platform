@@ -36,10 +36,8 @@ public class HouseholdService {
                 .isVerified(false)
                 .build();
 
-        Long householdId = householdRepository.create(household);
-        household.setId(householdId);
-
-        return mapToResponseDTO(household);
+          Household household1 = householdRepository.create(household);
+        return mapToResponseDTO(household1);
     }
 
     public HouseholdResponseDTO getHouseholdById(Long id) {

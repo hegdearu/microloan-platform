@@ -120,7 +120,7 @@ public class LoanProductRepository {
                 product.getMaxLateFeePercent(),
                 product.getPrepaymentChargesType(),
                 product.getPrepaymentChargesValue(),
-                product.getStatus(),
+                product.getStatus().name(),
                 LocalDateTime.now(),
                 product.getId()
         );

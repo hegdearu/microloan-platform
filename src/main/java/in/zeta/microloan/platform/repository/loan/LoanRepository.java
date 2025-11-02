@@ -49,7 +49,7 @@ public class LoanRepository {
             .firstDueDate(rs.getDate("first_due_date").toLocalDate())
             .lastPaymentDate(rs.getDate("last_payment_date") != null ?
                     rs.getDate("last_payment_date").toLocalDate() : null)
-            .status(LoanStatus.valueOf("status"))
+            .status(LoanStatus.valueOf(rs.getString("status")))
             .closedDate(rs.getDate("closed_date") != null ?
                     rs.getDate("closed_date").toLocalDate() : null)
             .gracePeriodDays(rs.getInt("grace_period_days"))
@@ -67,8 +67,8 @@ public class LoanRepository {
                 "repayment_frequency, emi_amount, total_payable, outstanding_principal, " +
                 "outstanding_interest, total_outstanding, total_paid, disbursement_date, " +
                 "disbursement_method, first_due_date, status, grace_period_days, late_fee_percent, " +
-                "household_income_at_approval, created_by, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "household_income_at_approval, created_by) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -98,12 +98,12 @@ public class LoanRepository {
             ps.setBigDecimal(22, loan.getLateFeePercent());
             ps.setBigDecimal(23, loan.getHouseholdIncomeAtApproval());
             ps.setLong(24, loan.getCreatedBy());
-            ps.setTimestamp(25, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            ps.setTimestamp(26, java.sql.Timestamp.valueOf(LocalDateTime.now()));
             return ps;
         }, keyHolder);
 
-        return keyHolder.getKey().longValue();
+        // Fix: Get the ID from the keys map instead of using getKey()
+        Number key = (Number) keyHolder.getKeys().get("id");
+        return key.longValue();
     }
 
     public Optional<Loan> findById(Long id) {
@@ -134,21 +134,20 @@ public class LoanRepository {
     }
 
     public void updateStatus(Long loanId, String status) {
-        String sql = "UPDATE public.loans SET status = ?, updated_at = ? WHERE id = ?";
-        jdbcTemplate.update(sql, status, LocalDateTime.now(), loanId);
+        String sql = "UPDATE public.loans SET status = ? WHERE id = ?";
+        jdbcTemplate.update(sql, status, loanId);
     }
 
     public void updateTotalPaid(Long loanId, BigDecimal amount) {
-        String sql = "UPDATE public.loans SET total_paid = total_paid + ?, updated_at = ? WHERE id = ?";
-        jdbcTemplate.update(sql, amount, LocalDateTime.now(), loanId);
+        String sql = "UPDATE public.loans SET total_paid = total_paid + ? WHERE id = ?";
+        jdbcTemplate.update(sql, amount, loanId);
     }
 
     public void updateOutstanding(Long loanId, BigDecimal principal, BigDecimal interest) {
         String sql = "UPDATE public.loans SET outstanding_principal = outstanding_principal - ?, " +
                 "outstanding_interest = outstanding_interest - ?, " +
                 "total_outstanding = outstanding_principal + outstanding_interest, " +
-                "last_payment_date = ?, updated_at = ? WHERE id = ?";
-        jdbcTemplate.update(sql, principal, interest, java.time.LocalDate.now(),
-                LocalDateTime.now(), loanId);
+                "last_payment_date = ? WHERE id = ?";
+        jdbcTemplate.update(sql, principal, interest, java.time.LocalDate.now(), loanId);
     }
 }

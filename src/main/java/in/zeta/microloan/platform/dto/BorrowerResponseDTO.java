@@ -14,10 +14,18 @@ public class BorrowerResponseDTO {
     private String name;
     private String phone;
     private String email;
+    private LocalDate dob;
     private Long householdId;
+    private String relationshipToHead;
+    private Boolean isHouseholdHead;
     private BigDecimal individualAnnualIncome;
     private String occupation;
+    private String address;
+    private String idProofType;
+    private String idProofNumber;
+    private Integer creditScore;
     private UserStatus status;
     private Boolean isVerified;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
