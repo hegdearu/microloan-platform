@@ -6,6 +6,7 @@ import in.zeta.microloan.platform.producer.EventProducer;
 import in.zeta.oms.atropos.response.PublishEventResponse;
 import in.zeta.oms.atropos.response.PublishStatus;
 import in.zeta.spectra.capture.SpectraLogger;
+import olympus.pubsub.model.TopicScope;
 import olympus.trace.OlympusSpectra;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,9 +56,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishLoanIssuedEvent(Loan loan) {
         try {
-            String eventData = buildLoanIssuedEventData(loan);
+            Map<String, Object> eventData = buildLoanIssuedEventData(loan);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, loanIssuedTopic)
+                    .publishEvent(String.valueOf(loan.getId()), loanIssuedTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -89,7 +90,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildLoanIssuedEventData(Loan loan) {
+    private Map<String, Object> buildLoanIssuedEventData(Loan loan) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "LOAN_ISSUED");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -108,7 +109,7 @@ public class AtroposEventPublisherService {
         eventData.put("firstDueDate", loan.getFirstDueDate().toString());
         eventData.put("disbursementMethod", loan.getDisbursementMethod().name());
         eventData.put("status", loan.getStatus().name());
-        return gson.toJson(eventData);
+        return eventData;
     }
 
     // ============================================
@@ -116,9 +117,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishLoanRepaymentEvent(Repayment repayment, Loan loan) {
         try {
-            String eventData = buildLoanRepaymentEventData(repayment, loan);
+            Map<String, Object> eventData = buildLoanRepaymentEventData(repayment, loan);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, loanRepaymentTopic)
+                    .publishEvent(String.valueOf(repayment.getId()), loanRepaymentTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -152,7 +153,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildLoanRepaymentEventData(Repayment repayment, Loan loan) {
+    private Map<String, Object> buildLoanRepaymentEventData(Repayment repayment, Loan loan) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "LOAN_REPAYMENT");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -171,7 +172,7 @@ public class AtroposEventPublisherService {
         eventData.put("transactionRef", repayment.getTransactionRef());
         eventData.put("remainingOutstanding", loan.getTotalOutstanding());
         eventData.put("loanStatus", loan.getStatus().name());
-        return gson.toJson(eventData);
+        return eventData;
     }
 
     // ============================================
@@ -179,9 +180,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishLoanOverdueEvent(Loan loan, OverdueTracking overdueTracking) {
         try {
-            String eventData = buildLoanOverdueEventData(loan, overdueTracking);
+            Map<String, Object> eventData = buildLoanOverdueEventData(loan, overdueTracking);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, loanOverdueTopic)
+                    .publishEvent(String.valueOf(overdueTracking.getId()), loanOverdueTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -216,7 +217,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildLoanOverdueEventData(Loan loan, OverdueTracking overdueTracking) {
+    private Map<String, Object> buildLoanOverdueEventData(Loan loan, OverdueTracking overdueTracking) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "LOAN_OVERDUE");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -234,7 +235,7 @@ public class AtroposEventPublisherService {
         eventData.put("collectionStage", overdueTracking.getCollectionStage().name());
         eventData.put("principalAmount", loan.getPrincipalAmount());
         eventData.put("disbursementDate", loan.getDisbursementDate().toString());
-        return gson.toJson(eventData);
+        return eventData;
     }
 
     // ============================================
@@ -242,9 +243,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishLoanCancelledEvent(Loan loan, String reason) {
         try {
-            String eventData = buildLoanCancelledEventData(loan, reason);
+            Map<String, Object> eventData = buildLoanCancelledEventData(loan, reason);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, loanCancelledTopic)
+                    .publishEvent(String.valueOf(loan.getId()), loanCancelledTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -275,7 +276,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildLoanCancelledEventData(Loan loan, String reason) {
+    private Map<String, Object> buildLoanCancelledEventData(Loan loan, String reason) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "LOAN_CANCELLED");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -284,7 +285,7 @@ public class AtroposEventPublisherService {
         eventData.put("borrowerId", loan.getBorrowerId());
         eventData.put("principalAmount", loan.getPrincipalAmount());
         eventData.put("cancellationReason", reason);
-        return gson.toJson(eventData);
+        return eventData;
     }
 
     // ============================================
@@ -292,9 +293,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishLoanClosedEvent(Loan loan) {
         try {
-            String eventData = buildLoanClosedEventData(loan);
+            Map<String, Object> eventData = buildLoanClosedEventData(loan);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, loanClosedTopic)
+                    .publishEvent(String.valueOf(loan.getId()), loanClosedTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -325,7 +326,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildLoanClosedEventData(Loan loan) {
+    private Map<String, Object> buildLoanClosedEventData(Loan loan) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "LOAN_CLOSED");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -336,7 +337,7 @@ public class AtroposEventPublisherService {
         eventData.put("totalPayable", loan.getTotalPayable());
         eventData.put("totalPaid", loan.getTotalPaid());
         eventData.put("disbursementDate", loan.getDisbursementDate().toString());
-        return gson.toJson(eventData);
+        return eventData;
     }
 
     // ============================================
@@ -344,9 +345,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishApplicationApprovedEvent(LoanApplication application, Long approvedBy) {
         try {
-            String eventData = buildApplicationApprovedEventData(application, approvedBy);
+            Map<String, Object> eventData = buildApplicationApprovedEventData(application, approvedBy);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, applicationApprovedTopic)
+                    .publishEvent(String.valueOf(application.getId()), applicationApprovedTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -378,7 +379,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildApplicationApprovedEventData(LoanApplication application, Long approvedBy) {
+    private Map<String, Object> buildApplicationApprovedEventData(LoanApplication application, Long approvedBy) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "APPLICATION_APPROVED");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -389,7 +390,7 @@ public class AtroposEventPublisherService {
         eventData.put("requestedAmount", application.getRequestedAmount());
         eventData.put("approvedAmount", application.getApprovedAmount());
         eventData.put("approvedBy", approvedBy);
-        return gson.toJson(eventData);
+        return eventData;
     }
 
     // ============================================
@@ -397,9 +398,9 @@ public class AtroposEventPublisherService {
     // ============================================
     public void publishApplicationRejectedEvent(LoanApplication application, String rejectionReason) {
         try {
-            String eventData = buildApplicationRejectedEventData(application, rejectionReason);
+            Map<String, Object> eventData = buildApplicationRejectedEventData(application, rejectionReason);
             PublishEventResponse response = eventProducer
-                    .publishEvent(eventData, applicationRejectedTopic)
+                    .publishEvent(String.valueOf(application.getId()), applicationRejectedTopic, eventData, TopicScope.SYSTEM)
                     .toCompletableFuture().get();
 
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -430,7 +431,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildApplicationRejectedEventData(LoanApplication application, String rejectionReason) {
+    private Map<String, Object> buildApplicationRejectedEventData(LoanApplication application, String rejectionReason) {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "APPLICATION_REJECTED");
         eventData.put("eventTimestamp", LocalDateTime.now().format(FORMATTER));
@@ -439,6 +440,6 @@ public class AtroposEventPublisherService {
         eventData.put("borrowerId", application.getBorrowerId());
         eventData.put("requestedAmount", application.getRequestedAmount());
         eventData.put("rejectionReason", rejectionReason);
-        return gson.toJson(eventData);
+        return eventData;
     }
 }
