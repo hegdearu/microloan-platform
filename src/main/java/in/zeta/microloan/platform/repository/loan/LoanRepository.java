@@ -150,4 +150,10 @@ public class LoanRepository {
                 "last_payment_date = ? WHERE id = ?";
         jdbcTemplate.update(sql, principal, interest, java.time.LocalDate.now(), loanId);
     }
+
+    public boolean existsByApplicationId(Long applicationId) {
+        String sql = "SELECT COUNT(*) FROM public.loans WHERE application_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, applicationId);
+        return count != null && count > 0;
+    }
 }
