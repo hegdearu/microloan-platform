@@ -1,8 +1,8 @@
 package in.zeta.microloan.platform.controller;
 
-import in.zeta.microloan.platform.dto.RepaymentDTO;
-import in.zeta.microloan.platform.dto.RepaymentResponseDTO;
-import in.zeta.microloan.platform.dto.RepaymentScheduleResponseDTO;
+import in.zeta.microloan.platform.dto.request.RepaymentRequestDTO;
+import in.zeta.microloan.platform.dto.response.RepaymentResponseDTO;
+import in.zeta.microloan.platform.dto.response.RepaymentScheduleResponseDTO;
 import in.zeta.microloan.platform.service.RepaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class RepaymentController {
 
     @PostMapping
     public ResponseEntity<RepaymentResponseDTO> recordRepayment(
-            @Valid @RequestBody RepaymentDTO dto,
+            @Valid @RequestBody RepaymentRequestDTO dto,
             @RequestParam Long createdBy) {
         RepaymentResponseDTO response = repaymentService.recordRepayment(dto, createdBy);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

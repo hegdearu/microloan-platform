@@ -1,11 +1,11 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.model.CollectionStage;
+import in.zeta.microloan.platform.model.enums.CollectionStage;
 import in.zeta.microloan.platform.model.Loan;
 import in.zeta.microloan.platform.model.OverdueTracking;
 import in.zeta.microloan.platform.model.RepaymentSchedule;
-import in.zeta.microloan.platform.repository.OverdueTrackingRepository;
-import in.zeta.microloan.platform.repository.RepaymentScheduleRepository;
+import in.zeta.microloan.platform.repository.overduetracking.OverdueTrackingRepository;
+import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

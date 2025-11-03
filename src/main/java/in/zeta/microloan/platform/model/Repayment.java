@@ -1,5 +1,7 @@
 package in.zeta.microloan.platform.model;
 
+import in.zeta.microloan.platform.model.enums.PaymentMethod;
+import in.zeta.microloan.platform.model.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

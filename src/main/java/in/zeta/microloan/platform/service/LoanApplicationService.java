@@ -1,12 +1,12 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.dto.LoanApplicationDTO;
-import in.zeta.microloan.platform.dto.LoanApplicationResponseDTO;
+import in.zeta.microloan.platform.dto.request.LoanApplicationRequestDTO;
+import in.zeta.microloan.platform.dto.response.LoanApplicationResponseDTO;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.LoanApplication;
-import in.zeta.microloan.platform.model.LoanApplicationStatus;
+import in.zeta.microloan.platform.model.enums.LoanApplicationStatus;
 import in.zeta.microloan.platform.model.LoanProduct;
 import in.zeta.microloan.platform.model.Borrower;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
@@ -48,7 +48,7 @@ public class LoanApplicationService {
     }
 
     @Transactional
-    public LoanApplicationResponseDTO createApplication(LoanApplicationDTO dto) {
+    public LoanApplicationResponseDTO createApplication(LoanApplicationRequestDTO dto) {
         // Validate borrower exists
         Borrower borrower = borrowerRepository.findById(dto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));

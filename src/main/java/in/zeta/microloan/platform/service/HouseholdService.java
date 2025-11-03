@@ -1,7 +1,7 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.dto.HouseholdRegistrationDTO;
-import in.zeta.microloan.platform.dto.HouseholdResponseDTO;
+import in.zeta.microloan.platform.dto.request.HouseholdRegistrationRequestDTO;
+import in.zeta.microloan.platform.dto.response.HouseholdResponseDTO;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.model.Household;
 import in.zeta.microloan.platform.repository.household.HouseholdRepository;
@@ -22,7 +22,7 @@ public class HouseholdService {
     }
 
     @Transactional
-    public HouseholdResponseDTO createHousehold(HouseholdRegistrationDTO dto) {
+    public HouseholdResponseDTO createHousehold(HouseholdRegistrationRequestDTO dto) {
         Household household = Household.builder()
                 .householdNumber(generateHouseholdNumber())
                 .primaryAddress(dto.getPrimaryAddress())

@@ -1,5 +1,6 @@
 package in.zeta.microloan.platform.model;
 
+import in.zeta.microloan.platform.model.enums.CollectionStage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
