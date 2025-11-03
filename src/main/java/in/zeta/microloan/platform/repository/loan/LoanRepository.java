@@ -15,6 +15,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class LoanRepository {
@@ -26,12 +27,12 @@ public class LoanRepository {
     }
 
     private final RowMapper<Loan> rowMapper = (rs, rowNum) -> Loan.builder()
-            .id(rs.getLong("id"))
+            .id(rs.getObject("id", UUID.class))
             .loanNumber(rs.getString("loan_number"))
-            .applicationId(rs.getObject("application_id", Long.class))
-            .borrowerId(rs.getLong("borrower_id"))
-            .householdId(rs.getObject("household_id", Long.class))
-            .productId(rs.getLong("product_id"))
+            .applicationId(rs.getObject("application_id", UUID.class))
+            .borrowerId(rs.getObject("borrower_id", UUID.class))
+            .householdId(rs.getObject("household_id", UUID.class))
+            .productId(rs.getObject("product_id", UUID.class))
             .principalAmount(rs.getBigDecimal("principal_amount"))
             .interestRate(rs.getBigDecimal("interest_rate"))
             .processingFee(rs.getBigDecimal("processing_fee"))
@@ -60,7 +61,7 @@ public class LoanRepository {
             .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
             .build();
 
-    public Long create(Loan loan) {
+    public UUID create(Loan loan) {
         String sql = "INSERT INTO public.loans (loan_number, application_id, borrower_id, household_id, " +
                 "product_id, principal_amount, interest_rate, processing_fee, tenure_months, " +
                 "repayment_frequency, emi_amount, total_payable, outstanding_principal, " +
@@ -75,9 +76,9 @@ public class LoanRepository {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, loan.getLoanNumber());
             ps.setObject(2, loan.getApplicationId());
-            ps.setLong(3, loan.getBorrowerId());
+            ps.setObject(3, loan.getBorrowerId());
             ps.setObject(4, loan.getHouseholdId());
-            ps.setLong(5, loan.getProductId());
+            ps.setObject(5, loan.getProductId());
             ps.setBigDecimal(6, loan.getPrincipalAmount());
             ps.setBigDecimal(7, loan.getInterestRate());
             ps.setBigDecimal(8, loan.getProcessingFee());
@@ -101,27 +102,27 @@ public class LoanRepository {
         }, keyHolder);
 
         // Fix: Get the ID from the keys map instead of using getKey()
-        Number key = (Number) keyHolder.getKeys().get("id");
-        return key.longValue();
+        UUID id = (UUID) keyHolder.getKeys().get("id");
+        return id;
     }
 
-    public Optional<Loan> findById(Long id) {
+    public Optional<Loan> findById(UUID id) {
         String sql = "SELECT * FROM public.loans WHERE id = ?";
         List<Loan> results = jdbcTemplate.query(sql, rowMapper, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
-    public List<Loan> findByBorrowerId(Long borrowerId) {
+    public List<Loan> findByBorrowerId(UUID borrowerId) {
         String sql = "SELECT * FROM public.loans WHERE borrower_id = ? ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, rowMapper, borrowerId);
     }
 
-    public List<Loan> findByHouseholdId(Long householdId) {
+    public List<Loan> findByHouseholdId(UUID householdId) {
         String sql = "SELECT * FROM public.loans WHERE household_id = ? ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, rowMapper, householdId);
     }
 
-    public BigDecimal getTotalHouseholdExposure(Long householdId) {
+    public BigDecimal getTotalHouseholdExposure(UUID householdId) {
         String sql = "SELECT COALESCE(SUM(total_outstanding), 0) FROM public.loans " +
                 "WHERE household_id = ? AND status IN ('ACTIVE', 'OVERDUE')";
         return jdbcTemplate.queryForObject(sql, BigDecimal.class, householdId);
@@ -132,17 +133,17 @@ public class LoanRepository {
         return jdbcTemplate.query(sql, rowMapper, status);
     }
 
-    public void updateStatus(Long loanId, String status) {
+    public void updateStatus(UUID loanId, String status) {
         String sql = "UPDATE public.loans SET status = ? WHERE id = ?";
         jdbcTemplate.update(sql, status, loanId);
     }
 
-    public void updateTotalPaid(Long loanId, BigDecimal amount) {
+    public void updateTotalPaid(UUID loanId, BigDecimal amount) {
         String sql = "UPDATE public.loans SET total_paid = total_paid + ? WHERE id = ?";
         jdbcTemplate.update(sql, amount, loanId);
     }
 
-    public void updateOutstanding(Long loanId, BigDecimal principal, BigDecimal interest) {
+    public void updateOutstanding(UUID loanId, BigDecimal principal, BigDecimal interest) {
         String sql = "UPDATE public.loans SET outstanding_principal = outstanding_principal - ?, " +
                 "outstanding_interest = outstanding_interest - ?, " +
                 "total_outstanding = outstanding_principal + outstanding_interest, " +
@@ -150,7 +151,7 @@ public class LoanRepository {
         jdbcTemplate.update(sql, principal, interest, java.time.LocalDate.now(), loanId);
     }
 
-    public boolean existsByApplicationId(Long applicationId) {
+    public boolean existsByApplicationId(UUID applicationId) {
         String sql = "SELECT COUNT(*) FROM public.loans WHERE application_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, applicationId);
         return count != null && count > 0;

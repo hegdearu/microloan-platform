@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -66,7 +67,7 @@ public class CollectionService {
                 .nextFollowUpDate(dto.getNextFollowUpDate())
                 .build();
 
-        Long activityId = activityRepository.create(activity);
+        UUID activityId = activityRepository.create(activity);
         activity.setId(activityId);
 
         spectraLogger.info("COLLECTION_ACTIVITY_CREATE_SUCCESS")
@@ -109,7 +110,7 @@ public class CollectionService {
         return result;
     }
 
-    public List<CollectionActivityResponseDTO> getActivitiesByLoanId(Long loanId) {
+    public List<CollectionActivityResponseDTO> getActivitiesByLoanId(UUID loanId) {
         spectraLogger.info("COLLECTION_ACTIVITY_LIST_FETCH_ATTEMPT")
                 .attr("loanId", loanId)
                 .log();

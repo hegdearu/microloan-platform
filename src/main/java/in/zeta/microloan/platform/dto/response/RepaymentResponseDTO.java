@@ -8,15 +8,16 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RepaymentResponseDTO {
-    private Long id;
+    private UUID id;
     private String receiptNumber;
-    private Long loanId;
+    private UUID loanId;
     private BigDecimal amount;
     private BigDecimal principalPaid;
     private BigDecimal interestPaid;
@@ -27,4 +28,5 @@ public class RepaymentResponseDTO {
     private String transactionRef;
     private String status;
     private LocalDateTime createdAt;
+    private String message;
 }

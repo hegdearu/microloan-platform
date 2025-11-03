@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 public class RepaymentScheduleService {
@@ -23,7 +24,7 @@ public class RepaymentScheduleService {
     }
 
     @Transactional
-    public void generateSchedule(Long loanId,
+    public void generateSchedule(UUID loanId,
                                  BigDecimal principalAmount,
                                  BigDecimal interestRate,
                                  int tenureMonths,

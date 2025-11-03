@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -217,7 +218,7 @@ public class LoanService {
                 .createdBy(createdBy)
                 .build();
 
-        Long loanId = loanRepository.create(loan);
+        UUID loanId = loanRepository.create(loan);
         loan.setId(loanId);
 
         scheduleService.generateSchedule(loanId, dto.getPrincipalAmount(), dto.getInterestRate(),
@@ -241,7 +242,7 @@ public class LoanService {
         return response;
     }
 
-    public LoanResponseDTO getLoanById(Long id) {
+    public LoanResponseDTO getLoanById(UUID id) {
         spectraLogger.info("LOAN_FETCH_BY_ID_ATTEMPT").attr("loanId", id).log();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> {
@@ -252,7 +253,7 @@ public class LoanService {
         return mapToResponseDTO(loan);
     }
 
-    public LoanDetailResponseDTO getLoanDetails(Long id) {
+    public LoanDetailResponseDTO getLoanDetails(UUID id) {
         spectraLogger.info("LOAN_DETAILS_FETCH_ATTEMPT").attr("loanId", id).log();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> {
@@ -292,7 +293,7 @@ public class LoanService {
                 .build();
     }
 
-    public List<LoanResponseDTO> getLoansByBorrower(Long borrowerId) {
+    public List<LoanResponseDTO> getLoansByBorrower(UUID borrowerId) {
         borrowerRepository.findById(borrowerId)
                 .orElseThrow(() -> {
                     spectraLogger.warn("LOANS_BY_BORROWER_BORROWER_NOT_FOUND")
@@ -310,7 +311,7 @@ public class LoanService {
         return result;
     }
 
-    public List<LoanResponseDTO> getLoansByHousehold(Long householdId) {
+    public List<LoanResponseDTO> getLoansByHousehold(UUID householdId) {
         householdRepository.findById(householdId)
                 .orElseThrow(() -> {
                     spectraLogger.warn("LOANS_BY_HOUSEHOLD_NOT_FOUND")
@@ -358,7 +359,7 @@ public class LoanService {
     }
 
     @Transactional
-    public void cancelLoan(Long id, String reason) {
+    public void cancelLoan(UUID id, String reason) {
         spectraLogger.info("LOAN_CANCEL_ATTEMPT")
                 .attr("loanId", id)
                 .attr("reason", reason)

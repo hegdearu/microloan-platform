@@ -8,14 +8,15 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class OverdueTracking {
-    private Long id;
-    private Long loanId;
+    private UUID id;
+    private UUID loanId;
     private LocalDate overdueSince;
     private Integer overdueDays;
     private BigDecimal overduePrincipal;

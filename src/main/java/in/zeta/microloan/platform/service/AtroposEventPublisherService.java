@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AtroposEventPublisherService {
@@ -289,9 +290,9 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishApplicationApprovedEvent(LoanApplication application, Long approvedBy) {
+    public void publishApplicationApprovedEvent(LoanApplication application) {
         try {
-            String eventData = buildApplicationApprovedEventData(application, approvedBy);
+            String eventData = buildApplicationApprovedEventData(application);
             PublishEventResponse response = eventProducer.publishEvent(eventData, applicationApprovedTopic)
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
@@ -303,7 +304,6 @@ public class AtroposEventPublisherService {
             }
             spectraLogger.info("APPLICATION_APPROVED_EVENT_PUBLISHED")
                     .attr("applicationId", application.getId())
-                    .attr("approvedBy", approvedBy)
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_INTERRUPTED", ie)
@@ -318,7 +318,7 @@ public class AtroposEventPublisherService {
         }
     }
 
-    private String buildApplicationApprovedEventData(LoanApplication application, Long approvedBy) {
+    private String buildApplicationApprovedEventData(LoanApplication application) {
         return gson.toJson(Map.ofEntries(
                 Map.entry("eventType", "APPLICATION_APPROVED"),
                 Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
@@ -327,8 +327,7 @@ public class AtroposEventPublisherService {
                 Map.entry("borrowerId", application.getBorrowerId()),
                 Map.entry("productId", application.getProductId()),
                 Map.entry("requestedAmount", application.getRequestedAmount()),
-                Map.entry("approvedAmount", application.getApprovedAmount()),
-                Map.entry("approvedBy", approvedBy)
+                Map.entry("approvedAmount", application.getApprovedAmount())
         ));
     }
 

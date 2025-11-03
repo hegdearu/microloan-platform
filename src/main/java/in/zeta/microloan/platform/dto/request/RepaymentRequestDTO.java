@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -17,7 +18,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class RepaymentRequestDTO {
     @NotNull(message = "Loan ID is required")
-    private Long loanId;
+    private UUID loanId;
 
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Amount must be greater than 0")

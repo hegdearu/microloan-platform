@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -30,10 +31,10 @@ public class LoanProvider implements ObjectProvider<LoanResponseDTO> {
     public CompletionStage<Optional<LoanResponseDTO>> getObject(JID jid, Realm realm, Long tenantID) {
         return CompletableFuture.supplyAsync(() -> {
             LoanResponseDTO loan = null;
-            Long borrowerId = null;
+            UUID borrowerId = null;
 
             try {
-                borrowerId = Long.valueOf(jid.getNodeId());
+                borrowerId = UUID.fromString(jid.getNodeId());
 
                 logger.info("Entry: Fetching Loan object")
                         .attr(BORROWER_ID, borrowerId)

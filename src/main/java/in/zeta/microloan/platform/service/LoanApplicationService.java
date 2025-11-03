@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -146,7 +147,7 @@ public class LoanApplicationService {
         return mapToResponseDTO(storedApplication);
     }
 
-    public List<LoanApplicationResponseDTO> getApplicationsByBorrower(Long borrowerId) {
+    public List<LoanApplicationResponseDTO> getApplicationsByBorrower(UUID borrowerId) {
         borrowerRepository.findById(borrowerId)
                 .orElseThrow(() -> {
                     spectraLogger.warn("LOAN_APPLICATION_LIST_BY_BORROWER_NOT_FOUND")
@@ -208,7 +209,7 @@ public class LoanApplicationService {
         return result;
     }
 
-    public LoanApplicationResponseDTO getApplicationById(Long id) {
+    public LoanApplicationResponseDTO getApplicationById(UUID id) {
         spectraLogger.info("LOAN_APPLICATION_FETCH_BY_ID_ATTEMPT").attr("applicationId", id).log();
         LoanApplication application = applicationRepository.findById(id)
                 .orElseThrow(() -> {
@@ -216,28 +217,6 @@ public class LoanApplicationService {
                     return new ResourceNotFoundException("Loan application not found");
                 });
         spectraLogger.info("LOAN_APPLICATION_FETCH_BY_ID_SUCCESS").attr("applicationId", id).log();
-        return mapToResponseDTO(application);
-    }
-
-    public LoanApplicationResponseDTO getLatestApplicationByBorrower(Long borrowerId) {
-        borrowerRepository.findById(borrowerId)
-                .orElseThrow(() -> {
-                    spectraLogger.warn("LOAN_APPLICATION_LATEST_BY_BORROWER_NOT_FOUND")
-                            .attr("borrowerId", borrowerId).log();
-                    return new ResourceNotFoundException("Borrower not found");
-                });
-
-        LoanApplication application = applicationRepository.findLatestByBorrowerId(borrowerId)
-                .orElseThrow(() -> {
-                    spectraLogger.warn("LOAN_APPLICATION_LATEST_BY_BORROWER_NONE")
-                            .attr("borrowerId", borrowerId).log();
-                    return new ResourceNotFoundException("No applications found for this borrower");
-                });
-
-        spectraLogger.info("LOAN_APPLICATION_LATEST_BY_BORROWER_SUCCESS")
-                .attr("borrowerId", borrowerId)
-                .attr("applicationId", application.getId())
-                .log();
         return mapToResponseDTO(application);
     }
 
@@ -268,10 +247,9 @@ public class LoanApplicationService {
     }
 
     @Transactional
-    public LoanApplicationResponseDTO approveApplication(Long id, Long approvedBy, BigDecimal approvedAmount) {
+    public LoanApplicationResponseDTO approveApplication(UUID id, BigDecimal approvedAmount) {
         spectraLogger.info("LOAN_APPLICATION_APPROVE_ATTEMPT")
                 .attr("applicationId", id)
-                .attr("approvedBy", approvedBy)
                 .attr("approvedAmount", approvedAmount)
                 .log();
 
@@ -281,8 +259,7 @@ public class LoanApplicationService {
                     return new ResourceNotFoundException("Loan application not found");
                 });
 
-        if (application.getStatus() != LoanApplicationStatus.PENDING_REVIEW &&
-                application.getStatus() != LoanApplicationStatus.UNDER_VERIFICATION) {
+        if (application.getStatus() != LoanApplicationStatus.PENDING_REVIEW ) {
             spectraLogger.warn("LOAN_APPLICATION_APPROVE_STATUS_INVALID")
                     .attr("applicationId", id)
                     .attr("currentStatus", application.getStatus().name())
@@ -315,24 +292,22 @@ public class LoanApplicationService {
                     product.getMinAmount(), product.getMaxAmount()));
         }
 
-        applicationRepository.approve(id, approvedBy, approvedAmount);
+        applicationRepository.approve(id, approvedAmount);
         application.setStatus(LoanApplicationStatus.APPROVED);
         application.setApprovedAmount(approvedAmount);
-        application.setApprovedBy(approvedBy);
         application.setApprovedAt(LocalDateTime.now());
 
-        atroposEventPublisher.publishApplicationApprovedEvent(application, approvedBy);
+        atroposEventPublisher.publishApplicationApprovedEvent(application);
 
         spectraLogger.info("LOAN_APPLICATION_APPROVE_SUCCESS")
                 .attr("applicationId", id)
                 .attr("approvedAmount", approvedAmount)
-                .attr("approvedBy", approvedBy)
                 .log();
         return mapToResponseDTO(application);
     }
 
     @Transactional
-    public void rejectApplication(Long id, String rejectionReason) {
+    public void rejectApplication(UUID id, String rejectionReason) {
         spectraLogger.info("LOAN_APPLICATION_REJECT_ATTEMPT")
                 .attr("applicationId", id)
                 .attr("reason", rejectionReason)
@@ -345,8 +320,7 @@ public class LoanApplicationService {
                     return new ResourceNotFoundException("Loan application not found");
                 });
 
-        if (application.getStatus() != LoanApplicationStatus.PENDING_REVIEW &&
-                application.getStatus() != LoanApplicationStatus.UNDER_VERIFICATION) {
+        if (application.getStatus() != LoanApplicationStatus.PENDING_REVIEW) {
             spectraLogger.warn("LOAN_APPLICATION_REJECT_STATUS_INVALID")
                     .attr("applicationId", id)
                     .attr("currentStatus", application.getStatus().name())
@@ -371,33 +345,7 @@ public class LoanApplicationService {
     }
 
     @Transactional
-    public LoanApplicationResponseDTO moveToVerification(Long id) {
-        spectraLogger.info("LOAN_APPLICATION_MOVE_TO_VERIFICATION_ATTEMPT").attr("applicationId", id).log();
-
-        LoanApplication application = applicationRepository.findById(id)
-                .orElseThrow(() -> {
-                    spectraLogger.warn("LOAN_APPLICATION_MOVE_TO_VERIFICATION_NOT_FOUND")
-                            .attr("applicationId", id).log();
-                    return new ResourceNotFoundException("Loan application not found");
-                });
-
-        if (application.getStatus() != LoanApplicationStatus.PENDING_REVIEW) {
-            spectraLogger.warn("LOAN_APPLICATION_MOVE_TO_VERIFICATION_STATUS_INVALID")
-                    .attr("applicationId", id)
-                    .attr("currentStatus", application.getStatus().name())
-                    .log();
-            throw new BusinessRuleException("Only pending applications can be moved to verification");
-        }
-
-        applicationRepository.updateStatus(id, LoanApplicationStatus.UNDER_VERIFICATION);
-        application.setStatus(LoanApplicationStatus.UNDER_VERIFICATION);
-
-        spectraLogger.info("LOAN_APPLICATION_MOVE_TO_VERIFICATION_SUCCESS").attr("applicationId", id).log();
-        return mapToResponseDTO(application);
-    }
-
-    @Transactional
-    public void cancelApplication(Long id) {
+    public void cancelApplication(UUID id) {
         spectraLogger.info("LOAN_APPLICATION_CANCEL_ATTEMPT").attr("applicationId", id).log();
 
         LoanApplication application = applicationRepository.findById(id)
@@ -415,7 +363,7 @@ public class LoanApplicationService {
             throw new BusinessRuleException("Approved or disbursed applications cannot be cancelled");
         }
 
-        applicationRepository.delete(id);
+        applicationRepository.cancel(id);
 
         spectraLogger.info("LOAN_APPLICATION_CANCEL_SUCCESS").attr("applicationId", id).log();
     }
@@ -437,7 +385,6 @@ public class LoanApplicationService {
                 .preferredTenure(application.getPreferredTenure())
                 .status(application.getStatus().name())
                 .approvedAmount(application.getApprovedAmount())
-                .approvedBy(application.getApprovedBy())
                 .approvedAt(application.getApprovedAt())
                 .rejectionReason(application.getRejectionReason())
                 .expiresAt(application.getExpiresAt())

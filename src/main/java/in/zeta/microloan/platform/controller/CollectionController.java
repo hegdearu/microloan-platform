@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.UUID;
+
+import static in.zeta.microloan.platform.constants.LogConstants.LOAN_ID;
 
 @RestController
 @RequestMapping("/api/v1/collections")
@@ -29,7 +32,7 @@ public class CollectionController {
             @Valid @RequestBody CollectionActivityRequestDTO dto) {
 
         spectraLogger.info("COLLECTION_ACTIVITY_CREATE_REQUEST")
-                .attr("loanId", dto.getLoanId())
+                .attr(LOAN_ID, dto.getLoanId())
                 .attr("activityType", dto.getActivityType())
                 .log();
 
@@ -37,22 +40,22 @@ public class CollectionController {
 
         spectraLogger.info("COLLECTION_ACTIVITY_CREATED")
                 .attr("activityId", response.getId())
-                .attr("loanId", response.getLoanId())
+                .attr(LOAN_ID, response.getLoanId())
                 .log();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/activities")
-    public ResponseEntity<List<CollectionActivityResponseDTO>> getActivities(@RequestParam Long loanId) {
+    public ResponseEntity<List<CollectionActivityResponseDTO>> getActivities(@RequestParam UUID loanId) {
         spectraLogger.info("COLLECTION_ACTIVITY_LIST_REQUEST")
-                .attr("loanId", loanId)
+                .attr(LOAN_ID, loanId)
                 .log();
 
         List<CollectionActivityResponseDTO> activities = collectionService.getActivitiesByLoanId(loanId);
 
         spectraLogger.info("COLLECTION_ACTIVITY_LIST_RESPONSE")
-                .attr("loanId", loanId)
+                .attr(LOAN_ID, loanId)
                 .attr("count", activities.size())
                 .log();
         return ResponseEntity.ok(activities);
