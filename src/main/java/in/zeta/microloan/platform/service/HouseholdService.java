@@ -5,6 +5,8 @@ import in.zeta.microloan.platform.dto.response.HouseholdResponseDTO;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.model.Household;
 import in.zeta.microloan.platform.repository.household.HouseholdRepository;
+import in.zeta.microloan.platform.service.mappers.HouseholdMapper;
+import in.zeta.microloan.platform.service.validator.HouseholdValidator;
 import in.zeta.spectra.capture.SpectraLogger;
 import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,15 @@ public class HouseholdService {
     private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(HouseholdService.class);
 
     private final HouseholdRepository householdRepository;
+    private final HouseholdValidator validator;
+    private final HouseholdMapper mapper;
 
-    public HouseholdService(HouseholdRepository householdRepository) {
+    public HouseholdService(HouseholdRepository householdRepository,
+                            HouseholdValidator validator,
+                            HouseholdMapper mapper) {
         this.householdRepository = householdRepository;
+        this.validator = validator;
+        this.mapper = mapper;
     }
 
     @Transactional
@@ -33,6 +41,8 @@ public class HouseholdService {
                 .attr("city", dto.getCity())
                 .attr("state", dto.getState())
                 .log();
+
+        validator.validateRegistration(dto);
 
         Household household = Household.builder()
                 .householdNumber(generateHouseholdNumber())
@@ -54,7 +64,7 @@ public class HouseholdService {
                 .attr("householdNumber", stored.getHouseholdNumber())
                 .log();
 
-        return mapToResponseDTO(stored);
+        return mapper.toResponse(stored);
     }
 
     public HouseholdResponseDTO getHouseholdById(UUID id) {
@@ -65,38 +75,26 @@ public class HouseholdService {
                     return new ResourceNotFoundException("Household not found");
                 });
         spectraLogger.info("HOUSEHOLD_FETCH_BY_ID_SUCCESS").attr("householdId", id).log();
-        return mapToResponseDTO(household);
+        return mapper.toResponse(household);
     }
 
     public HouseholdResponseDTO verifyHousehold(UUID id) {
         Household household = householdRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Household not found"));
+
         if (Boolean.TRUE.equals(household.getIsVerified())) {
-            return mapToResponseDTO(household);
+            return mapper.toResponse(household);
         }
+
         household.setIsVerified(true);
         household.setIncomeVerifiedDate(LocalDate.now());
         householdRepository.update(household);
-        return mapToResponseDTO(household);
+        return mapper.toResponse(household);
     }
 
     private String generateHouseholdNumber() {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String randomPart = String.format("%06d", new Random().nextInt(999999));
         return "HH-" + datePart + "-" + randomPart;
-    }
-
-    private HouseholdResponseDTO mapToResponseDTO(Household household) {
-        return HouseholdResponseDTO.builder()
-                .id(household.getId())
-                .householdNumber(household.getHouseholdNumber())
-                .primaryAddress(household.getPrimaryAddress())
-                .city(household.getCity())
-                .state(household.getState())
-                .totalAnnualIncome(household.getTotalAnnualIncome())
-                .totalMembers(household.getTotalMembers())
-                .isVerified(household.getIsVerified())
-                .createdAt(household.getCreatedAt())
-                .build();
     }
 }

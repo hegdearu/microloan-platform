@@ -3,8 +3,10 @@ package in.zeta.microloan.platform.controller;
 import in.zeta.microloan.platform.dto.response.LoanDetailResponseDTO;
 import in.zeta.microloan.platform.dto.request.LoanIssuanceRequestDTO;
 import in.zeta.microloan.platform.dto.response.LoanResponseDTO;
+import in.zeta.microloan.platform.provider.LoanProvider;
 import in.zeta.microloan.platform.service.LoanService;
 import in.zeta.spectra.capture.SpectraLogger;
+import in.zeta.springframework.boot.commons.authorization.sandboxAccessControl.SandboxAuthorizedSync;
 import olympus.trace.OlympusSpectra;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ public class LoanController {
     }
 
     @PostMapping
+    @SandboxAuthorizedSync(action = "loan.create", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<LoanResponseDTO> createLoan(
             @Valid @RequestBody LoanIssuanceRequestDTO dto,
             @RequestParam Long createdBy) {
@@ -50,6 +53,7 @@ public class LoanController {
     }
 
     @GetMapping("/{id}")
+    @SandboxAuthorizedSync(action = "loan.get", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<LoanResponseDTO> getLoanById(@PathVariable UUID id) {
         spectraLogger.info("LOAN_FETCH_REQUEST").attr(LOAN_ID, id).log();
         LoanResponseDTO loan = loanService.getLoanById(id);
@@ -58,6 +62,7 @@ public class LoanController {
     }
 
     @GetMapping("/{id}/details")
+    @SandboxAuthorizedSync(action = "loan.get", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<LoanDetailResponseDTO> getLoanDetails(@PathVariable UUID id) {
         spectraLogger.info("LOAN_DETAILS_REQUEST").attr(LOAN_ID, id).log();
         LoanDetailResponseDTO details = loanService.getLoanDetails(id);
@@ -66,6 +71,7 @@ public class LoanController {
     }
 
     @GetMapping("/borrower/{borrowerId}")
+    @SandboxAuthorizedSync(action = "loan.get", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<LoanResponseDTO>> getLoansByBorrower(@PathVariable UUID borrowerId) {
         spectraLogger.info("LOANS_BY_BORROWER_REQUEST").attr(BORROWER_ID, borrowerId).log();
         List<LoanResponseDTO> loans = loanService.getLoansByBorrower(borrowerId);
@@ -77,6 +83,7 @@ public class LoanController {
     }
 
     @GetMapping("/household/{householdId}")
+    @SandboxAuthorizedSync(action = "loan.get", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<LoanResponseDTO>> getLoansByHousehold(@PathVariable UUID householdId) {
         spectraLogger.info("LOANS_BY_HOUSEHOLD_REQUEST").attr("householdId", householdId).log();
         List<LoanResponseDTO> loans = loanService.getLoansByHousehold(householdId);
@@ -88,6 +95,7 @@ public class LoanController {
     }
 
     @GetMapping("/status/{status}")
+    @SandboxAuthorizedSync(action = "loan.getAll", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<LoanResponseDTO>> getLoansByStatus(
             @PathVariable String status,
             @RequestParam(defaultValue = "1") int page,
@@ -109,6 +117,7 @@ public class LoanController {
     }
 
     @PutMapping("/{id}/cancel")
+    @SandboxAuthorizedSync(action = "loan.cancel", object = "$$loans$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<Void> cancelLoan(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {

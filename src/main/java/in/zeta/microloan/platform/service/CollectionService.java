@@ -10,6 +10,8 @@ import in.zeta.microloan.platform.repository.collectionactivity.CollectionActivi
 import in.zeta.microloan.platform.repository.overduetracking.OverdueTrackingRepository;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
+import in.zeta.microloan.platform.service.mappers.CollectionMapper;
+import in.zeta.microloan.platform.service.validator.CollectionValidator;
 import in.zeta.spectra.capture.SpectraLogger;
 import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
@@ -29,15 +31,21 @@ public class CollectionService {
     private final OverdueTrackingRepository overdueRepository;
     private final LoanRepository loanRepository;
     private final BorrowerRepository borrowerRepository;
+    private final CollectionValidator validator;
+    private final CollectionMapper mapper;
 
     public CollectionService(CollectionActivityRepository activityRepository,
                              OverdueTrackingRepository overdueRepository,
                              LoanRepository loanRepository,
-                             BorrowerRepository borrowerRepository) {
+                             BorrowerRepository borrowerRepository,
+                             CollectionValidator validator,
+                             CollectionMapper mapper) {
         this.activityRepository = activityRepository;
         this.overdueRepository = overdueRepository;
         this.loanRepository = loanRepository;
         this.borrowerRepository = borrowerRepository;
+        this.validator = validator;
+        this.mapper = mapper;
     }
 
     @Transactional
@@ -46,6 +54,8 @@ public class CollectionService {
                 .attr("loanId", dto.getLoanId())
                 .attr("activityType", dto.getActivityType())
                 .log();
+
+        validator.validateActivity(dto);
 
         loanRepository.findById(dto.getLoanId())
                 .orElseThrow(() -> {
@@ -75,7 +85,7 @@ public class CollectionService {
                 .attr("loanId", dto.getLoanId())
                 .log();
 
-        return mapToResponseDTO(activity);
+        return mapper.toActivityResponse(activity);
     }
 
     public List<OverdueLoansResponseDTO> getAllOverdueLoans() {
@@ -89,19 +99,7 @@ public class CollectionService {
             Borrower borrower = borrowerRepository.findById(loan.getBorrowerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
 
-            return OverdueLoansResponseDTO.builder()
-                    .loanId(loan.getId())
-                    .loanNumber(loan.getLoanNumber())
-                    .borrowerId(borrower.getId())
-                    .borrowerName(borrower.getName())
-                    .borrowerPhone(borrower.getPhone())
-                    .overdueSince(overdue.getOverdueSince())
-                    .overdueDays(overdue.getOverdueDays())
-                    .overdueAmount(overdue.getOverdueAmount())
-                    .penaltyAmount(overdue.getPenaltyAmount())
-                    .totalDue(overdue.getTotalDue())
-                    .collectionStage(overdue.getCollectionStage())
-                    .build();
+            return mapper.toOverdueResponse(overdue, loan, borrower);
         }).collect(Collectors.toList());
 
         spectraLogger.info("OVERDUE_LOANS_FETCH_SUCCESS")
@@ -114,28 +112,16 @@ public class CollectionService {
         spectraLogger.info("COLLECTION_ACTIVITY_LIST_FETCH_ATTEMPT")
                 .attr("loanId", loanId)
                 .log();
+
         List<CollectionActivity> activities = activityRepository.findByLoanId(loanId);
         List<CollectionActivityResponseDTO> result = activities.stream()
-                .map(this::mapToResponseDTO)
+                .map(mapper::toActivityResponse)
                 .collect(Collectors.toList());
+
         spectraLogger.info("COLLECTION_ACTIVITY_LIST_FETCH_SUCCESS")
                 .attr("loanId", loanId)
                 .attr("count", result.size())
                 .log();
         return result;
-    }
-
-    private CollectionActivityResponseDTO mapToResponseDTO(CollectionActivity activity) {
-        return CollectionActivityResponseDTO.builder()
-                .id(activity.getId())
-                .loanId(activity.getLoanId())
-                .activityType(activity.getActivityType())
-                .contactMethod(activity.getContactMethod())
-                .borrowerResponse(activity.getBorrowerResponse())
-                .promiseToPayDate(activity.getPromiseToPayDate())
-                .notes(activity.getNotes())
-                .activityDate(activity.getActivityDate())
-                .nextFollowUpDate(activity.getNextFollowUpDate())
-                .build();
     }
 }

@@ -21,7 +21,6 @@ public class BorrowerCreditSummaryResponseDTO {
     private BigDecimal totalDisbursed;
     private BigDecimal totalOutstanding;
     private BigDecimal totalPaid;
-    private Integer creditScore;
     private Boolean isVerified;
     private String status;
 }

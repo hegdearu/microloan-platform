@@ -38,7 +38,6 @@ public class BorrowerRepository {
             .employmentDetails(rs.getString("employment_details"))
             .incomeDetails(rs.getString("income_details"))
             .profilePhotoUrl(rs.getString("profile_photo_url"))
-            .creditScore(rs.getObject("credit_score", Integer.class))
             .status(UserStatus.valueOf(rs.getString("status")))
             .isVerified(rs.getBoolean("is_verified"))
             .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
@@ -84,7 +83,7 @@ public class BorrowerRepository {
     public void update(Borrower borrower) {
         String sql = "UPDATE public.borrowers SET name = ?, email = ?, address = ?, " +
                 "occupation = ?, individual_annual_income = ?, employment_details = ?, " +
-                "income_details = ?, status = ?, is_verified = ?, credit_score = ?, " +
+                "income_details = ?, status = ?, is_verified = ?, " +
                 "updated_at = ? WHERE id = ?";
 
         jdbcTemplate.update(sql,
@@ -97,7 +96,6 @@ public class BorrowerRepository {
                 borrower.getIncomeDetails(),
                 borrower.getStatus().name(),
                 borrower.getIsVerified(),
-                borrower.getCreditScore(),
                 LocalDateTime.now(),
                 borrower.getId()
         );
