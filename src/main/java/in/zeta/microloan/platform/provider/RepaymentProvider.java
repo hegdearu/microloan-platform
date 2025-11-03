@@ -1,6 +1,6 @@
 package in.zeta.microloan.platform.provider;
 
-import in.zeta.microloan.platform.dto.RepaymentResponseDTO;
+import in.zeta.microloan.platform.dto.response.RepaymentResponseDTO;
 import in.zeta.microloan.platform.service.RepaymentService;
 import in.zeta.oms.sandbox.model.object.ObjectProvider;
 import in.zeta.oms.sandbox.model.realm.Realm;
@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 

@@ -1,7 +1,7 @@
 package in.zeta.microloan.platform.controller;
 
-import in.zeta.microloan.platform.dto.LoanApplicationDTO;
-import in.zeta.microloan.platform.dto.LoanApplicationResponseDTO;
+import in.zeta.microloan.platform.dto.request.LoanApplicationRequestDTO;
+import in.zeta.microloan.platform.dto.response.LoanApplicationResponseDTO;
 import in.zeta.microloan.platform.service.LoanApplicationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +24,7 @@ public class LoanApplicationController {
 
     @PostMapping
     public ResponseEntity<LoanApplicationResponseDTO> createApplication(
-            @Valid @RequestBody LoanApplicationDTO dto) {
+            @Valid @RequestBody LoanApplicationRequestDTO dto) {
         LoanApplicationResponseDTO response = applicationService.createApplication(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

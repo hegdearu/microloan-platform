@@ -1,7 +1,7 @@
 package in.zeta.microloan.platform.repository.loanapplication;
 
 import in.zeta.microloan.platform.model.LoanApplication;
-import in.zeta.microloan.platform.model.LoanApplicationStatus;
+import in.zeta.microloan.platform.model.enums.LoanApplicationStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
