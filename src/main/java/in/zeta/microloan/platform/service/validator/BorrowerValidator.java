@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.UUID;
 
 @Component
 public class BorrowerValidator {
@@ -43,12 +44,14 @@ public class BorrowerValidator {
                     .log();
             throw new ValidationException("Borrower must be at least " + minAgeRequirement + " years old");
         }
+
         borrowerRepository.findByPhone(dto.getPhone()).ifPresent(b -> {
             spectraLogger.warn("BORROWER_REGISTER_PHONE_ALREADY_EXISTS")
                     .attr("phone", dto.getPhone())
                     .log();
             throw new ValidationException("Phone number already registered");
         });
+
         if (dto.getHouseholdId() != null) {
             householdRepository.findById(dto.getHouseholdId()).orElseThrow(() -> {
                 spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
@@ -57,6 +60,7 @@ public class BorrowerValidator {
                 return new ResourceNotFoundException("Household not found");
             });
         }
+
         if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
             validateEmail(dto.getEmail(), "BORROWER_REGISTER_EMAIL_INVALID");
         }
@@ -70,50 +74,48 @@ public class BorrowerValidator {
 
     public void validateVerification(Borrower borrower) {
         if (borrower.getIsVerified()) {
-            spectraLogger.warn("BORROWER_VERIFY_ALREADY_VERIFIED").attr("borrowerId", borrower.getId()).log();
+            spectraLogger.warn("BORROWER_VERIFY_ALREADY_VERIFIED")
+                    .attr("borrowerId", borrower.getId())
+                    .log();
             throw new BusinessRuleException("Borrower is already verified");
         }
     }
 
-    public UserStatus validateStatusChange(Borrower borrower, String statusStr) {
+    public UserStatus validateStatusChange(UUID borrowerId, String statusStr) {
         UserStatus status;
         try {
             status = UserStatus.valueOf(statusStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             spectraLogger.warn("BORROWER_STATUS_UPDATE_INVALID_STATUS")
-                    .attr("borrowerId", borrower.getId())
+                    .attr("borrowerId", borrowerId)
                     .attr("status", statusStr)
                     .log();
             throw new ValidationException("Invalid status: " + statusStr);
         }
+
         if (status == UserStatus.SUSPENDED || status == UserStatus.INACTIVE) {
-            int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrower.getId());
+            int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrowerId);
             if (activeLoans > 0) {
                 spectraLogger.warn("BORROWER_STATUS_UPDATE_ACTIVE_LOANS_BLOCKED")
-                        .attr("borrowerId", borrower.getId())
+                        .attr("borrowerId", borrowerId)
                         .attr("activeLoans", activeLoans)
                         .log();
-                throw new BusinessRuleException("Cannot change status. Borrower has " + activeLoans + " active loan(s)");
+                throw new BusinessRuleException(
+                        "Cannot change status. Borrower has " + activeLoans + " active loan(s)");
             }
         }
         return status;
     }
 
-    public void validateDeletion(Borrower borrower) {
-        int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrower.getId());
+    public void validateDeletion(UUID borrowerId) {
+        int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrowerId);
         if (activeLoans > 0) {
             spectraLogger.warn("BORROWER_DELETE_ACTIVE_LOANS_BLOCKED")
-                    .attr("borrowerId", borrower.getId())
+                    .attr("borrowerId", borrowerId)
                     .attr("activeLoans", activeLoans)
                     .log();
-            throw new BusinessRuleException("Cannot delete borrower with active loans. Please close all loans first.");
-        }
-    }
-
-    public void ensureBorrowerExists(Borrower borrower, Long id, String eventCode) {
-        if (borrower == null) {
-            spectraLogger.warn(eventCode).attr("borrowerId", id).log();
-            throw new ResourceNotFoundException("Borrower not found");
+            throw new BusinessRuleException(
+                    "Cannot delete borrower with active loans. Please close all loans first.");
         }
     }
 

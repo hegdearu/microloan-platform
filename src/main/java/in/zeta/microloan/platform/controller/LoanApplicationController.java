@@ -2,8 +2,10 @@ package in.zeta.microloan.platform.controller;
 
 import in.zeta.microloan.platform.dto.request.LoanApplicationRequestDTO;
 import in.zeta.microloan.platform.dto.response.LoanApplicationResponseDTO;
+import in.zeta.microloan.platform.provider.LoanProvider;
 import in.zeta.microloan.platform.service.LoanApplicationService;
 import in.zeta.spectra.capture.SpectraLogger;
+import in.zeta.springframework.boot.commons.authorization.sandboxAccessControl.SandboxAuthorizedSync;
 import olympus.trace.OlympusSpectra;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ public class LoanApplicationController {
     }
 
     @PostMapping
+    @SandboxAuthorizedSync(action = "loan.create", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<LoanApplicationResponseDTO> createApplication(
             @Valid @RequestBody LoanApplicationRequestDTO dto) {
         spectraLogger.info("LOAN_APPLICATION_CREATE_REQUEST")
@@ -47,6 +50,7 @@ public class LoanApplicationController {
     }
 
     @GetMapping
+    @SandboxAuthorizedSync(action = "loan.get", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<LoanApplicationResponseDTO>> getApplications(
             @RequestParam(required = false) UUID borrowerId,
             @RequestParam(required = false) String status,
@@ -76,6 +80,7 @@ public class LoanApplicationController {
     }
 
     @GetMapping("/{id}")
+    @SandboxAuthorizedSync(action = "loan.get", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<LoanApplicationResponseDTO> getApplication(@PathVariable UUID id) {
         spectraLogger.info("LOAN_APPLICATION_FETCH_REQUEST").attr(APPLICATION_ID, id).log();
         LoanApplicationResponseDTO application = applicationService.getApplicationById(id);
@@ -84,6 +89,7 @@ public class LoanApplicationController {
     }
 
     @PutMapping("/{id}/approve")
+    @SandboxAuthorizedSync(action = "loan.approve", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<LoanApplicationResponseDTO> approveApplication(
             @PathVariable UUID id,
             @RequestBody Map<String, Object> request) {
@@ -105,6 +111,7 @@ public class LoanApplicationController {
     }
 
     @PutMapping("/{id}/reject")
+    @SandboxAuthorizedSync(action = "loan.reject", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<Void> rejectApplication(
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
@@ -124,6 +131,7 @@ public class LoanApplicationController {
     }
 
     @PutMapping("/{id}/cancel")
+    @SandboxAuthorizedSync(action = "loan.cancel", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<Void> cancelApplication(@PathVariable UUID id) {
         spectraLogger.info("LOAN_APPLICATION_CANCEL_REQUEST").attr(APPLICATION_ID, id).log();
         applicationService.cancelApplication(id);
@@ -132,6 +140,7 @@ public class LoanApplicationController {
     }
 
     @GetMapping("/pending")
+    @SandboxAuthorizedSync(action = "loan.getAll", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<LoanApplicationResponseDTO>> getPendingApplications(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit) {
@@ -148,6 +157,7 @@ public class LoanApplicationController {
     }
 
     @GetMapping("/expired")
+    @SandboxAuthorizedSync(action = "loan.getAll", object = "$$loan$$@" + LoanProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<LoanApplicationResponseDTO>> getExpiredApplications(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit) {

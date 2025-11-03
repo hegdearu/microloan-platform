@@ -4,8 +4,10 @@ import in.zeta.microloan.platform.dto.response.BorrowerCreditSummaryResponseDTO;
 import in.zeta.microloan.platform.dto.request.BorrowerRegistrationRequestDTO;
 import in.zeta.microloan.platform.dto.response.BorrowerResponseDTO;
 import in.zeta.microloan.platform.dto.request.BorrowerUpdateRequestDTO;
+import in.zeta.microloan.platform.provider.UserProvider;
 import in.zeta.microloan.platform.service.BorrowerService;
 import in.zeta.spectra.capture.SpectraLogger;
+import in.zeta.springframework.boot.commons.authorization.sandboxAccessControl.SandboxAuthorizedSync;
 import olympus.trace.OlympusSpectra;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +32,7 @@ public class BorrowerController {
     }
 
     @PostMapping("/register")
-//  @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+  @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> registerBorrower(
             @Valid @RequestBody BorrowerRegistrationRequestDTO request) {
         spectraLogger.info("BORROWER_REGISTER_REQUEST")
@@ -45,7 +47,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/{borrowerId}")
-//        @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> getBorrowerDetails(@PathVariable UUID borrowerId) {
         spectraLogger.info("BORROWER_FETCH_REQUEST")
                 .attr(BORROWER_ID, borrowerId)
@@ -58,7 +60,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/phone/{phone}")
-    //    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> getBorrowerByPhone(@PathVariable String phone) {
         spectraLogger.info("BORROWER_FETCH_BY_PHONE_REQUEST")
                 .attr("phone", phone)
@@ -71,7 +73,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/household/{householdId}")
-    //    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<BorrowerResponseDTO>> getBorrowersByHousehold(@PathVariable UUID householdId) {
         spectraLogger.info("BORROWER_LIST_BY_HOUSEHOLD_REQUEST")
                 .attr("householdId", householdId)
@@ -85,7 +87,7 @@ public class BorrowerController {
     }
 
     @GetMapping
-//    @SandboxAuthorizedSync(action = "user.getAll", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.getAll", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<BorrowerResponseDTO>> getAllBorrowers(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
@@ -103,7 +105,7 @@ public class BorrowerController {
     }
 
     @PutMapping("/{borrowerId}")
-//    @SandboxAuthorizedSync(action = "user.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> updateBorrowerDetails(
             @PathVariable UUID borrowerId,
             @Valid @RequestBody BorrowerUpdateRequestDTO request) {
@@ -118,7 +120,7 @@ public class BorrowerController {
     }
 
     @PutMapping("/{borrowerId}/verify")
-    //    @SandboxAuthorizedSync(action = "user.verify", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.verify", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> verifyBorrower(@PathVariable UUID borrowerId) {
         spectraLogger.info("BORROWER_VERIFY_REQUEST")
                 .attr(BORROWER_ID, borrowerId)
@@ -131,7 +133,7 @@ public class BorrowerController {
     }
 
     @PutMapping("/{borrowerId}/status")
-//    @SandboxAuthorizedSync(action = "user.status.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.status.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> updateBorrowerStatus(
             @PathVariable UUID borrowerId,
             @RequestParam String status) {
@@ -148,7 +150,7 @@ public class BorrowerController {
     }
 
     @DeleteMapping("/{borrowerId}")
-//    @SandboxAuthorizedSync(action = "user.delete", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.delete", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<Void> deleteBorrower(@PathVariable UUID borrowerId) {
         spectraLogger.info("BORROWER_DELETE_REQUEST")
                 .attr(BORROWER_ID, borrowerId)
@@ -161,7 +163,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/{borrowerId}/credit-summary")
-    //    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerCreditSummaryResponseDTO> getBorrowerCreditSummary(@PathVariable UUID borrowerId) {
         spectraLogger.info("BORROWER_CREDIT_SUMMARY_REQUEST")
                 .attr(BORROWER_ID, borrowerId)

@@ -32,7 +32,6 @@ public class Borrower {
     private String employmentDetails;
     private String incomeDetails;
     private String profilePhotoUrl;
-    private Integer creditScore;
     private UserStatus status;
     private Boolean isVerified;
     private LocalDateTime createdAt;

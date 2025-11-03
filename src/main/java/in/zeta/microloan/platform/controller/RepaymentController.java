@@ -3,8 +3,10 @@ package in.zeta.microloan.platform.controller;
 import in.zeta.microloan.platform.dto.request.RepaymentRequestDTO;
 import in.zeta.microloan.platform.dto.response.RepaymentResponseDTO;
 import in.zeta.microloan.platform.dto.response.RepaymentScheduleResponseDTO;
+import in.zeta.microloan.platform.provider.RepaymentProvider;
 import in.zeta.microloan.platform.service.RepaymentService;
 import in.zeta.spectra.capture.SpectraLogger;
+import in.zeta.springframework.boot.commons.authorization.sandboxAccessControl.SandboxAuthorizedSync;
 import olympus.trace.OlympusSpectra;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,7 @@ public class RepaymentController {
     }
 
     @PostMapping
+    @SandboxAuthorizedSync(action = "repayment.create", object = "$$repayments$$@" + RepaymentProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<RepaymentResponseDTO> recordRepayment(
             @Valid @RequestBody RepaymentRequestDTO dto,
             @RequestParam Long createdBy) {
@@ -47,6 +50,7 @@ public class RepaymentController {
     }
 
     @GetMapping("/loan/{loanId}")
+    @SandboxAuthorizedSync(action = "repayment.get", object = "$$repayments$$@" + RepaymentProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<RepaymentResponseDTO>> getRepaymentsByLoan(@PathVariable UUID loanId) {
         spectraLogger.info("REPAYMENT_LIST_REQUEST")
                 .attr(LOAN_ID, loanId)
@@ -60,6 +64,7 @@ public class RepaymentController {
     }
 
     @GetMapping("/loan/{loanId}/schedule")
+    @SandboxAuthorizedSync(action = "repayment.get", object = "$$repayments$$@" + RepaymentProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<RepaymentScheduleResponseDTO>> getRepaymentSchedule(@PathVariable UUID loanId) {
         spectraLogger.info("REPAYMENT_SCHEDULE_REQUEST")
                 .attr(LOAN_ID, loanId)
@@ -73,6 +78,7 @@ public class RepaymentController {
     }
 
     @GetMapping("/loan/{loanId}/pending")
+    @SandboxAuthorizedSync(action = "repayment.get", object = "$$repayments$$@" + RepaymentProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<RepaymentScheduleResponseDTO>> getPendingSchedule(@PathVariable UUID loanId) {
         spectraLogger.info("REPAYMENT_PENDING_SCHEDULE_REQUEST")
                 .attr(LOAN_ID, loanId)
