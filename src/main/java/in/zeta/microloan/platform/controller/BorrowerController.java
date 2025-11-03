@@ -29,7 +29,7 @@ public class BorrowerController {
     }
 
     @PostMapping("/register")
-//    @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//  @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> registerBorrower(
             @Valid @RequestBody BorrowerRegistrationRequestDTO request) {
         spectraLogger.info("BORROWER_REGISTER_REQUEST")
@@ -44,7 +44,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/{borrowerId}")
-    //    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//        @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> getBorrowerDetails(@PathVariable Long borrowerId) {
         spectraLogger.info("BORROWER_FETCH_REQUEST")
                 .attr("borrowerId", borrowerId)

@@ -16,7 +16,7 @@ import java.util.concurrent.CompletionStage;
 
 @Component
 public class UserProvider implements ObjectProvider<BorrowerResponseDTO> {
-    public static final String OBJECT_TYPE = "borrower";
+    public static final String OBJECT_TYPE = "loan_user_profile";
     private final BorrowerService borrowerService;
     private static final SpectraLogger logger = OlympusSpectra.getLogger(UserProvider.class);
 
