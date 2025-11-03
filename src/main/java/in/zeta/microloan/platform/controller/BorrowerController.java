@@ -25,7 +25,7 @@ public class BorrowerController {
     }
 
     @PostMapping("/register")
-    @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> registerBorrower(
             @Valid @RequestBody BorrowerRegistrationRequestDTO request) {
         BorrowerResponseDTO response = borrowerService.registerBorrower(request);
@@ -33,7 +33,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/{borrowerId}")
-    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> getBorrowerDetails(
             @PathVariable Long borrowerId) {
         BorrowerResponseDTO response = borrowerService.getBorrowerById(borrowerId);
@@ -41,7 +41,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/phone/{phone}")
-    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> getBorrowerByPhone(
             @PathVariable String phone) {
         BorrowerResponseDTO response = borrowerService.getBorrowerByPhone(phone);
@@ -49,7 +49,7 @@ public class BorrowerController {
     }
 
     @GetMapping("/household/{householdId}")
-    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<BorrowerResponseDTO>> getBorrowersByHousehold(
             @PathVariable Long householdId) {
         List<BorrowerResponseDTO> borrowers = borrowerService.getBorrowersByHousehold(householdId);
@@ -57,7 +57,7 @@ public class BorrowerController {
     }
 
     @GetMapping
-    @SandboxAuthorizedSync(action = "user.getAll", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.getAll", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<List<BorrowerResponseDTO>> getAllBorrowers(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
@@ -67,7 +67,7 @@ public class BorrowerController {
     }
 
     @PutMapping("/{borrowerId}")
-    @SandboxAuthorizedSync(action = "user.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> updateBorrowerDetails(
             @PathVariable Long borrowerId,
             @Valid @RequestBody BorrowerUpdateRequestDTO request) {
@@ -76,7 +76,7 @@ public class BorrowerController {
     }
 
     @PutMapping("/{borrowerId}/verify")
-    @SandboxAuthorizedSync(action = "user.verify", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.verify", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> verifyBorrower(
             @PathVariable Long borrowerId) {
         BorrowerResponseDTO response = borrowerService.verifyBorrower(borrowerId);
@@ -84,7 +84,7 @@ public class BorrowerController {
     }
 
     @PutMapping("/{borrowerId}/status")
-    @SandboxAuthorizedSync(action = "user.status.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.status.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> updateBorrowerStatus(
             @PathVariable Long borrowerId,
             @RequestParam String status) {
@@ -93,14 +93,14 @@ public class BorrowerController {
     }
 
     @DeleteMapping("/{borrowerId}")
-    @SandboxAuthorizedSync(action = "user.delete", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.delete", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<Void> deleteBorrower(@PathVariable Long borrowerId) {
         borrowerService.deleteBorrower(borrowerId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{borrowerId}/credit-summary")
-    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
+//    @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerCreditSummaryResponseDTO> getBorrowerCreditSummary(
             @PathVariable Long borrowerId) {
         BorrowerCreditSummaryResponseDTO summary = borrowerService.getBorrowerCreditSummary(borrowerId);
