@@ -7,8 +7,8 @@ import in.zeta.microloan.platform.model.RepaymentSchedule;
 import in.zeta.microloan.platform.repository.overduetracking.OverdueTrackingRepository;
 import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import in.zeta.spectra.capture.SpectraLogger;
+import olympus.trace.OlympusSpectra;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +19,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class OverdueDetectionJob {
 
-    private static final Logger logger = LoggerFactory.getLogger(OverdueDetectionJob.class);
+    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(OverdueDetectionJob.class);
 
     private final LoanRepository loanRepository;
     private final RepaymentScheduleRepository scheduleRepository;
@@ -32,7 +33,8 @@ public class OverdueDetectionJob {
 
     public OverdueDetectionJob(LoanRepository loanRepository,
                                RepaymentScheduleRepository scheduleRepository,
-                               OverdueTrackingRepository overdueRepository, AtroposEventPublisherService atroposEventPublisher) {
+                               OverdueTrackingRepository overdueRepository,
+                               AtroposEventPublisherService atroposEventPublisher) {
         this.loanRepository = loanRepository;
         this.scheduleRepository = scheduleRepository;
         this.overdueRepository = overdueRepository;
@@ -42,8 +44,7 @@ public class OverdueDetectionJob {
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void detectOverdueLoans() {
-        logger.info("Starting overdue detection job...");
-
+        spectraLogger.info("OVERDUE_DETECTION_JOB_START").log();
         try {
             List<Loan> activeLoans = loanRepository.findByStatus("ACTIVE");
             int overdueCount = 0;
@@ -54,9 +55,8 @@ public class OverdueDetectionJob {
                 RepaymentSchedule firstOverdueInstallment = null;
                 for (RepaymentSchedule schedule : schedules) {
                     if ("PENDING".equals(schedule.getStatus())) {
-                        LocalDate gracePeriodEnd = schedule.getDueDate().plusDays(loan.getGracePeriodDays());
-
-                        if (LocalDate.now().isAfter(gracePeriodEnd)) {
+                        LocalDate graceEnd = schedule.getDueDate().plusDays(loan.getGracePeriodDays());
+                        if (LocalDate.now().isAfter(graceEnd)) {
                             scheduleRepository.updateStatus(schedule.getId(), "OVERDUE");
                             if (firstOverdueInstallment == null) {
                                 firstOverdueInstallment = schedule;
@@ -86,7 +86,7 @@ public class OverdueDetectionJob {
 
                     BigDecimal overdueAmount = overduePrincipal.add(overdueInterest);
 
-                    BigDecimal penaltyAmount = overdueAmount
+                    BigDecimal rawPenalty = overdueAmount
                             .multiply(loan.getLateFeePercent())
                             .multiply(BigDecimal.valueOf(overdueDays))
                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
@@ -95,61 +95,67 @@ public class OverdueDetectionJob {
                             .multiply(BigDecimal.valueOf(50))
                             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
-                    if (penaltyAmount.compareTo(maxPenalty) > 0) {
-                        penaltyAmount = maxPenalty;
-                    }
+                    BigDecimal penaltyAmount = rawPenalty.compareTo(maxPenalty) > 0 ? maxPenalty : rawPenalty;
 
                     BigDecimal totalDue = overdueAmount.add(penaltyAmount);
-
                     String collectionStage = determineCollectionStage(overdueDays);
 
-                    BigDecimal finalOverduePrincipal = overduePrincipal;
-                    BigDecimal finalOverdueInterest = overdueInterest;
-                    BigDecimal finalPenaltyAmount = penaltyAmount;
-                    BigDecimal finalOverdueAmount = overdueAmount;
-                    BigDecimal finalTotalDue = totalDue;
-                    CollectionStage finalCollectionStage = CollectionStage.valueOf(collectionStage);
-                    LocalDate finalOverdueSince = overdueSince;
-                    overdueRepository.findByLoanId(loan.getId()).ifPresentOrElse(
-                            existing -> {
-                                existing.setOverdueDays(overdueDays);
-                                existing.setOverduePrincipal(finalOverduePrincipal);
-                                existing.setOverdueInterest(finalOverdueInterest);
-                                existing.setOverdueAmount(finalOverdueAmount);
-                                existing.setPenaltyAmount(finalPenaltyAmount);
-                                existing.setTotalDue(finalTotalDue);
-                                existing.setLastCheckedAt(LocalDateTime.now());
-                                existing.setCollectionStage(finalCollectionStage);
-                                overdueRepository.update(existing);
-                                atroposEventPublisher.publishLoanOverdueEvent(loan, existing);
-                            },
-                            () -> {
-                                OverdueTracking tracking = OverdueTracking.builder()
-                                        .loanId(loan.getId())
-                                        .overdueSince(finalOverdueSince)
-                                        .overdueDays(overdueDays)
-                                        .overduePrincipal(finalOverduePrincipal)
-                                        .overdueInterest(finalOverdueInterest)
-                                        .overdueAmount(finalOverdueAmount)
-                                        .penaltyAmount(finalPenaltyAmount)
-                                        .totalDue(finalTotalDue)
-                                        .lastCheckedAt(LocalDateTime.now())
-                                        .collectionStage(finalCollectionStage)
-                                        .build();
-                                overdueRepository.create(tracking);
-                                atroposEventPublisher.publishLoanOverdueEvent(loan, tracking);
-                            }
-                    );
+                    Optional<OverdueTracking> opt = overdueRepository.findByLoanId(loan.getId());
+                    OverdueTracking overdueTracking;
+                    if (opt.isPresent()) {
+                        OverdueTracking existing = opt.get();
+                        existing.setOverdueDays(overdueDays);
+                        existing.setOverduePrincipal(overduePrincipal);
+                        existing.setOverdueInterest(overdueInterest);
+                        existing.setOverdueAmount(overdueAmount);
+                        existing.setPenaltyAmount(penaltyAmount);
+                        existing.setTotalDue(totalDue);
+                        existing.setCollectionStage(CollectionStage.valueOf(collectionStage));
+                        existing.setUpdatedAt(LocalDateTime.now());
+                        overdueRepository.update(existing);
+                        overdueTracking = existing;
 
+                        spectraLogger.info("OVERDUE_TRACKING_UPDATE")
+                                .attr("loanId", loan.getId())
+                                .attr("overdueDays", overdueDays)
+                                .attr("totalDue", totalDue)
+                                .log();
+                    } else {
+                        OverdueTracking tracking = OverdueTracking.builder()
+                                .loanId(loan.getId())
+                                .overdueDays(overdueDays)
+                                .overduePrincipal(overduePrincipal)
+                                .overdueInterest(overdueInterest)
+                                .overdueAmount(overdueAmount)
+                                .penaltyAmount(penaltyAmount)
+                                .totalDue(totalDue)
+                                .collectionStage(CollectionStage.valueOf(collectionStage))
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build();
+                        overdueRepository.create(tracking);
+                        overdueTracking = tracking;
+
+                        spectraLogger.info("OVERDUE_TRACKING_CREATE")
+                                .attr("loanId", loan.getId())
+                                .attr("overdueDays", overdueDays)
+                                .attr("totalDue", totalDue)
+                                .log();
+                    }
+
+                    atroposEventPublisher.publishLoanOverdueEvent(loan, overdueTracking);
                     overdueCount++;
-                    logger.info("Loan {} marked as overdue", loan.getLoanNumber());
                 }
             }
 
-            logger.info("Overdue detection completed. {} loans processed", overdueCount);
-
+            spectraLogger.info("OVERDUE_DETECTION_JOB_COMPLETE")
+                    .attr("processedLoans", activeLoans.size())
+                    .attr("overdueLoans", overdueCount)
+                    .log();
         } catch (Exception e) {
-            logger.error("Error in overdue detection job", e);
+            spectraLogger.error("OVERDUE_DETECTION_JOB_ERROR")
+                    .attr("message", e.getMessage())
+                    .log();
         }
     }
 

@@ -11,6 +11,8 @@ import in.zeta.microloan.platform.model.enums.PaymentStatus;
 import in.zeta.microloan.platform.repository.repayment.RepaymentRepository;
 import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
+import in.zeta.spectra.capture.SpectraLogger;
+import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class RepaymentService {
 
+    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(RepaymentService.class);
+
     private final RepaymentRepository repaymentRepository;
     private final RepaymentScheduleRepository scheduleRepository;
     private final LoanRepository loanRepository;
@@ -32,7 +36,8 @@ public class RepaymentService {
 
     public RepaymentService(RepaymentRepository repaymentRepository,
                             RepaymentScheduleRepository scheduleRepository,
-                            LoanRepository loanRepository, AtroposEventPublisherService atroposEventPublisher) {
+                            LoanRepository loanRepository,
+                            AtroposEventPublisherService atroposEventPublisher) {
         this.repaymentRepository = repaymentRepository;
         this.scheduleRepository = scheduleRepository;
         this.loanRepository = loanRepository;
@@ -41,18 +46,30 @@ public class RepaymentService {
 
     @Transactional
     public RepaymentResponseDTO recordRepayment(RepaymentRequestDTO dto, Long createdBy) {
+        spectraLogger.info("REPAYMENT_PROCESS_START")
+                .attr("loanId", dto.getLoanId())
+                .attr("amount", dto.getAmount())
+                .attr("paymentDate", dto.getPaymentDate())
+                .attr("paymentMethod", dto.getPaymentMethod())
+                .log();
+
         Loan loan = loanRepository.findById(dto.getLoanId())
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
 
         if (!loan.getStatus().name().equals("ACTIVE") &&
                 !loan.getStatus().name().equals("OVERDUE")) {
+            spectraLogger.warn("REPAYMENT_INVALID_LOAN_STATUS")
+                    .attr("loanId", dto.getLoanId())
+                    .attr("status", loan.getStatus())
+                    .log();
             throw new BusinessRuleException("Repayment can only be made for active or overdue loans");
         }
 
-        List<RepaymentSchedule> pendingSchedules =
-                scheduleRepository.findPendingByLoanId(dto.getLoanId());
-
+        List<RepaymentSchedule> pendingSchedules = scheduleRepository.findPendingByLoanId(dto.getLoanId());
         if (pendingSchedules.isEmpty()) {
+            spectraLogger.warn("REPAYMENT_NO_PENDING_INSTALLMENTS")
+                    .attr("loanId", dto.getLoanId())
+                    .log();
             throw new BusinessRuleException("No pending installments found");
         }
 
@@ -62,17 +79,15 @@ public class RepaymentService {
         BigDecimal totalLateFeePaid = BigDecimal.ZERO;
 
         for (RepaymentSchedule schedule : pendingSchedules) {
-            if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                break;
-            }
+            if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) break;
 
             BigDecimal principalDue = schedule.getPrincipalDue().subtract(schedule.getPrincipalPaid());
             BigDecimal interestDue = schedule.getInterestDue().subtract(schedule.getInterestPaid());
 
-            // Calculate late fee if overdue
             BigDecimal lateFee = BigDecimal.ZERO;
             if (LocalDate.now().isAfter(schedule.getDueDate().plusDays(loan.getGracePeriodDays()))) {
-                lateFee = schedule.getTotalDue().multiply(loan.getLateFeePercent())
+                lateFee = schedule.getTotalDue()
+                        .multiply(loan.getLateFeePercent())
                         .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
             }
 
@@ -94,6 +109,17 @@ public class RepaymentService {
                         "PAID",
                         LocalDate.now()
                 );
+                remainingAmount = remainingAmount.subtract(totalDue);
+                totalPrincipalPaid = totalPrincipalPaid.add(principalDue);
+                totalInterestPaid = totalInterestPaid.add(interestDue);
+                totalLateFeePaid = totalLateFeePaid.add(lateFeeDue);
+
+                spectraLogger.info("REPAYMENT_INSTALLMENT_PAID")
+                        .attr("scheduleId", schedule.getId())
+                        .attr("principalPaid", principalDue)
+                        .attr("interestPaid", interestDue)
+                        .attr("lateFeePaid", lateFeeDue)
+                        .log();
             } else {
                 // Partial payment - prioritize interest, then late fee, then principal
                 BigDecimal interestPayment = remainingAmount.min(interestDue);
@@ -117,11 +143,15 @@ public class RepaymentService {
                         null
                 );
 
-                break; // Stop processing further installments
+                spectraLogger.info("REPAYMENT_INSTALLMENT_PARTIAL")
+                        .attr("scheduleId", schedule.getId())
+                        .attr("principalPaid", principalPayment)
+                        .attr("interestPaid", interestPayment)
+                        .attr("lateFeePaid", lateFeePayment)
+                        .log();
             }
         }
 
-        // Record the repayment
         Repayment repayment = Repayment.builder()
                 .receiptNumber(generateReceiptNumber())
                 .loanId(dto.getLoanId())
@@ -143,56 +173,56 @@ public class RepaymentService {
         Long repaymentId = repaymentRepository.create(repayment);
         repayment.setId(repaymentId);
 
-        // Update loan outstanding amounts
-        loanRepository.updateOutstanding(
-                dto.getLoanId(),
-                totalPrincipalPaid,
-                totalInterestPaid
-        );
+        loanRepository.updateOutstanding(dto.getLoanId(), totalPrincipalPaid, totalInterestPaid);
         loanRepository.updateTotalPaid(dto.getLoanId(), dto.getAmount());
 
-        // Check if loan is fully paid
         Loan updatedLoan = loanRepository.findById(dto.getLoanId()).get();
         if (updatedLoan.getTotalOutstanding().compareTo(BigDecimal.ZERO) <= 0) {
             loanRepository.updateStatus(dto.getLoanId(), "CLOSED");
-
-            // Publish loan closed event
             Loan closedLoan = loanRepository.findById(dto.getLoanId()).get();
             atroposEventPublisher.publishLoanClosedEvent(closedLoan);
+            spectraLogger.info("REPAYMENT_LOAN_CLOSED")
+                    .attr("loanId", dto.getLoanId())
+                    .log();
         } else if (updatedLoan.getStatus().name().equals("OVERDUE")) {
-            // Check if no more overdue installments
             List<RepaymentSchedule> stillOverdue = pendingSchedules.stream()
-                    .filter(s -> s.getStatus().name().equals("OVERDUE"))
+                    .filter(s -> LocalDate.now().isAfter(s.getDueDate().plusDays(loan.getGracePeriodDays())))
                     .collect(Collectors.toList());
             if (stillOverdue.isEmpty()) {
                 loanRepository.updateStatus(dto.getLoanId(), "ACTIVE");
+                spectraLogger.info("REPAYMENT_LOAN_STATUS_NORMALIZED")
+                        .attr("loanId", dto.getLoanId())
+                        .log();
             }
         }
 
         atroposEventPublisher.publishLoanRepaymentEvent(repayment, loan);
+
+        spectraLogger.info("REPAYMENT_PROCESS_COMPLETE")
+                .attr("repaymentId", repayment.getId())
+                .attr("loanId", dto.getLoanId())
+                .attr("principalPaidTotal", totalPrincipalPaid)
+                .attr("interestPaidTotal", totalInterestPaid)
+                .attr("lateFeePaidTotal", totalLateFeePaid)
+                .attr("advanceRemaining", remainingAmount)
+                .log();
 
         return mapToResponseDTO(repayment);
     }
 
     public List<RepaymentResponseDTO> getRepaymentsByLoan(Long loanId) {
         List<Repayment> repayments = repaymentRepository.findByLoanId(loanId);
-        return repayments.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return repayments.stream().map(this::mapToResponseDTO).collect(Collectors.toList());
     }
 
     public List<RepaymentScheduleResponseDTO> getRepaymentSchedule(Long loanId) {
         List<RepaymentSchedule> schedules = scheduleRepository.findByLoanId(loanId);
-        return schedules.stream()
-                .map(this::mapToScheduleResponseDTO)
-                .collect(Collectors.toList());
+        return schedules.stream().map(this::mapToScheduleResponseDTO).collect(Collectors.toList());
     }
 
     public List<RepaymentScheduleResponseDTO> getPendingSchedule(Long loanId) {
         List<RepaymentSchedule> pending = scheduleRepository.findPendingByLoanId(loanId);
-        return pending.stream()
-                .map(this::mapToScheduleResponseDTO)
-                .collect(Collectors.toList());
+        return pending.stream().map(this::mapToScheduleResponseDTO).collect(Collectors.toList());
     }
 
     private String generateReceiptNumber() {
