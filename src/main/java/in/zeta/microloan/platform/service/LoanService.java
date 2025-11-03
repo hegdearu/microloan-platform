@@ -12,6 +12,8 @@ import in.zeta.microloan.platform.repository.household.HouseholdRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
 import in.zeta.microloan.platform.repository.loanproduct.LoanProductRepository;
 import in.zeta.microloan.platform.repository.loanapplication.LoanApplicationRepository;
+import in.zeta.spectra.capture.SpectraLogger;
+import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class LoanService {
+
+    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(LoanService.class);
 
     private final LoanRepository loanRepository;
     private final LoanProductRepository productRepository;
@@ -38,7 +42,8 @@ public class LoanService {
                        BorrowerRepository borrowerRepository,
                        HouseholdRepository householdRepository,
                        LoanApplicationRepository applicationRepository,
-                       RepaymentScheduleService scheduleService, AtroposEventPublisherService atroposEventPublisher) {
+                       RepaymentScheduleService scheduleService,
+                       AtroposEventPublisherService atroposEventPublisher) {
         this.loanRepository = loanRepository;
         this.productRepository = productRepository;
         this.borrowerRepository = borrowerRepository;
@@ -50,98 +55,131 @@ public class LoanService {
 
     @Transactional
     public LoanResponseDTO createLoan(LoanIssuanceRequestDTO dto, Long createdBy) {
-        // Validate loan application if provided
+        spectraLogger.info("LOAN_CREATE_ATTEMPT")
+                .attr("borrowerId", dto.getBorrowerId())
+                .attr("productId", dto.getProductId())
+                .attr("principalAmount", dto.getPrincipalAmount())
+                .attr("applicationId", dto.getApplicationId())
+                .attr("createdBy", createdBy)
+                .log();
+
         if (dto.getApplicationId() != null) {
             LoanApplication application = applicationRepository.findById(dto.getApplicationId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Loan application not found"));
+                    .orElseThrow(() -> {
+                        spectraLogger.warn("LOAN_CREATE_APPLICATION_NOT_FOUND")
+                                .attr("applicationId", dto.getApplicationId()).log();
+                        return new ResourceNotFoundException("Loan application not found");
+                    });
 
-            // Check if application is approved
             if (application.getStatus() != LoanApplicationStatus.APPROVED) {
-                throw new BusinessRuleException(
-                        "Loan can only be created for APPROVED applications. Current status: " +
-                                application.getStatus());
+                spectraLogger.warn("LOAN_CREATE_APPLICATION_STATUS_INVALID")
+                        .attr("applicationId", dto.getApplicationId())
+                        .attr("status", application.getStatus().name())
+                        .log();
+                throw new BusinessRuleException("Loan can only be created for APPROVED applications. Current status: " +
+                        application.getStatus());
             }
 
-            // Check if application has expired
             if (LocalDateTime.now().isAfter(application.getExpiresAt())) {
+                spectraLogger.warn("LOAN_CREATE_APPLICATION_EXPIRED")
+                        .attr("applicationId", dto.getApplicationId()).log();
                 throw new BusinessRuleException("Loan application has expired");
             }
 
-            // Check if loan already exists for this application
             if (loanRepository.existsByApplicationId(dto.getApplicationId())) {
+                spectraLogger.warn("LOAN_CREATE_ALREADY_EXISTS_FOR_APPLICATION")
+                        .attr("applicationId", dto.getApplicationId()).log();
                 throw new BusinessRuleException("Loan already exists for this application");
             }
 
-            // Validate that the principal amount matches approved amount
             if (application.getApprovedAmount() != null &&
                     dto.getPrincipalAmount().compareTo(application.getApprovedAmount()) != 0) {
-                throw new BusinessRuleException(
-                        String.format("Principal amount ₹%s does not match approved amount ₹%s",
-                                dto.getPrincipalAmount(), application.getApprovedAmount()));
+                spectraLogger.warn("LOAN_CREATE_PRINCIPAL_MISMATCH_APPROVED")
+                        .attr("applicationId", dto.getApplicationId())
+                        .attr("principalAmount", dto.getPrincipalAmount())
+                        .attr("approvedAmount", application.getApprovedAmount())
+                        .log();
+                throw new BusinessRuleException(String.format("Principal amount ₹%s does not match approved amount ₹%s",
+                        dto.getPrincipalAmount(), application.getApprovedAmount()));
             }
 
-            // Validate borrower matches
             if (!application.getBorrowerId().equals(dto.getBorrowerId())) {
+                spectraLogger.warn("LOAN_CREATE_BORROWER_MISMATCH_APPLICATION")
+                        .attr("applicationBorrowerId", application.getBorrowerId())
+                        .attr("requestBorrowerId", dto.getBorrowerId())
+                        .log();
                 throw new BusinessRuleException("Borrower ID does not match the loan application");
             }
 
-            // Validate product matches
             if (!application.getProductId().equals(dto.getProductId())) {
+                spectraLogger.warn("LOAN_CREATE_PRODUCT_MISMATCH_APPLICATION")
+                        .attr("applicationProductId", application.getProductId())
+                        .attr("requestProductId", dto.getProductId())
+                        .log();
                 throw new BusinessRuleException("Product ID does not match the loan application");
             }
         }
 
         LoanProduct product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOAN_CREATE_PRODUCT_NOT_FOUND")
+                            .attr("productId", dto.getProductId()).log();
+                    return new ResourceNotFoundException("Loan product not found");
+                });
 
-        // Validate product is active
         if (!"ACTIVE".equals(product.getStatus().name())) {
+            spectraLogger.warn("LOAN_CREATE_PRODUCT_INACTIVE")
+                    .attr("productId", dto.getProductId()).log();
             throw new BusinessRuleException("Cannot create loan for inactive product");
         }
 
         Borrower borrower = borrowerRepository.findById(dto.getBorrowerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOAN_CREATE_BORROWER_NOT_FOUND")
+                            .attr("borrowerId", dto.getBorrowerId()).log();
+                    return new ResourceNotFoundException("Borrower not found");
+                });
 
-        // Validate borrower is verified
         if (!borrower.getIsVerified()) {
+            spectraLogger.warn("LOAN_CREATE_BORROWER_NOT_VERIFIED")
+                    .attr("borrowerId", dto.getBorrowerId()).log();
             throw new BusinessRuleException("Borrower must be verified before loan disbursement");
         }
 
-        // Validate borrower is active
         if (borrower.getStatus() != UserStatus.ACTIVE) {
+            spectraLogger.warn("LOAN_CREATE_BORROWER_STATUS_INVALID")
+                    .attr("borrowerId", dto.getBorrowerId())
+                    .attr("status", borrower.getStatus().name())
+                    .log();
             throw new BusinessRuleException("Borrower status must be ACTIVE. Current status: " +
                     borrower.getStatus());
         }
 
-        // Validate amount is within product limits
         if (dto.getPrincipalAmount().compareTo(product.getMinAmount()) < 0 ||
                 dto.getPrincipalAmount().compareTo(product.getMaxAmount()) > 0) {
-            throw new BusinessRuleException(
-                    String.format("Loan amount must be between ₹%s and ₹%s",
-                            product.getMinAmount(), product.getMaxAmount()));
+            spectraLogger.warn("LOAN_CREATE_AMOUNT_OUT_OF_RANGE")
+                    .attr("principalAmount", dto.getPrincipalAmount())
+                    .attr("min", product.getMinAmount())
+                    .attr("max", product.getMaxAmount())
+                    .log();
+            throw new BusinessRuleException(String.format("Loan amount must be between ₹%s and ₹%s",
+                    product.getMinAmount(), product.getMaxAmount()));
         }
 
-        // Validate tenure
         if (dto.getTenureMonths() > product.getTenureMonths()) {
-            throw new BusinessRuleException(
-                    String.format("Tenure cannot exceed %d months for this product",
-                            product.getTenureMonths()));
+            spectraLogger.warn("LOAN_CREATE_TENURE_EXCEEDED")
+                    .attr("requestedTenure", dto.getTenureMonths())
+                    .attr("maxTenure", product.getTenureMonths())
+                    .log();
+            throw new BusinessRuleException(String.format("Tenure cannot exceed %d months for this product",
+                    product.getTenureMonths()));
         }
 
         BigDecimal emiAmount = EMICalculator.calculateEMI(
-                dto.getPrincipalAmount(),
-                dto.getInterestRate(),
-                dto.getTenureMonths()
-        );
+                dto.getPrincipalAmount(), dto.getInterestRate(), dto.getTenureMonths());
 
         BigDecimal processingFee = calculateProcessingFee(dto.getPrincipalAmount(), product);
-
-        BigDecimal totalInterest = EMICalculator.calculateTotalInterest(
-                emiAmount,
-                dto.getTenureMonths(),
-                dto.getPrincipalAmount()
-        );
-
+        BigDecimal totalInterest = EMICalculator.calculateTotalInterest(emiAmount, dto.getTenureMonths(), dto.getPrincipalAmount());
         BigDecimal totalPayable = dto.getPrincipalAmount().add(totalInterest);
 
         BigDecimal householdIncome = null;
@@ -182,36 +220,54 @@ public class LoanService {
         Long loanId = loanRepository.create(loan);
         loan.setId(loanId);
 
-        // Generate repayment schedule
         scheduleService.generateSchedule(loanId, dto.getPrincipalAmount(), dto.getInterestRate(),
                 dto.getTenureMonths(), emiAmount, dto.getFirstDueDate());
 
-        // Update application status to DISBURSED if application exists
         if (dto.getApplicationId() != null) {
             applicationRepository.updateStatus(dto.getApplicationId(), LoanApplicationStatus.DISBURSED);
         }
 
-        // Publish event
         atroposEventPublisher.publishLoanIssuedEvent(loan);
 
-        // Fetch the loan again to get the timestamps
-        return loanRepository.findById(loanId)
+        LoanResponseDTO response = loanRepository.findById(loanId)
                 .map(this::mapToResponseDTO)
                 .orElse(mapToResponseDTO(loan));
+
+        spectraLogger.info("LOAN_CREATE_SUCCESS")
+                .attr("loanId", response.getId())
+                .attr("loanNumber", response.getLoanNumber())
+                .attr("emiAmount", response.getEmiAmount())
+                .log();
+        return response;
     }
 
     public LoanResponseDTO getLoanById(Long id) {
+        spectraLogger.info("LOAN_FETCH_BY_ID_ATTEMPT").attr("loanId", id).log();
         Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOAN_FETCH_BY_ID_NOT_FOUND").attr("loanId", id).log();
+                    return new ResourceNotFoundException("Loan not found");
+                });
+        spectraLogger.info("LOAN_FETCH_BY_ID_SUCCESS").attr("loanId", id).log();
         return mapToResponseDTO(loan);
     }
 
     public LoanDetailResponseDTO getLoanDetails(Long id) {
+        spectraLogger.info("LOAN_DETAILS_FETCH_ATTEMPT").attr("loanId", id).log();
         Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOAN_DETAILS_FETCH_NOT_FOUND").attr("loanId", id).log();
+                    return new ResourceNotFoundException("Loan not found");
+                });
 
         Borrower borrower = borrowerRepository.findById(loan.getBorrowerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOAN_DETAILS_FETCH_BORROWER_NOT_FOUND")
+                            .attr("borrowerId", loan.getBorrowerId()).log();
+                    return new ResourceNotFoundException("Borrower not found");
+                });
+
+        spectraLogger.info("LOAN_DETAILS_FETCH_SUCCESS").attr("loanId", id).log();
 
         return LoanDetailResponseDTO.builder()
                 .id(loan.getId())
@@ -237,59 +293,105 @@ public class LoanService {
     }
 
     public List<LoanResponseDTO> getLoansByBorrower(Long borrowerId) {
-        // Validate borrower exists
         borrowerRepository.findById(borrowerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOANS_BY_BORROWER_BORROWER_NOT_FOUND")
+                            .attr("borrowerId", borrowerId).log();
+                    return new ResourceNotFoundException("Borrower not found");
+                });
 
         List<Loan> loans = loanRepository.findByBorrowerId(borrowerId);
-        return loans.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        List<LoanResponseDTO> result = loans.stream().map(this::mapToResponseDTO).collect(Collectors.toList());
+
+        spectraLogger.info("LOANS_BY_BORROWER_SUCCESS")
+                .attr("borrowerId", borrowerId)
+                .attr("count", result.size())
+                .log();
+        return result;
     }
 
     public List<LoanResponseDTO> getLoansByHousehold(Long householdId) {
-        // Validate household exists
         householdRepository.findById(householdId)
-                .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOANS_BY_HOUSEHOLD_NOT_FOUND")
+                            .attr("householdId", householdId).log();
+                    return new ResourceNotFoundException("Household not found");
+                });
 
         List<Loan> loans = loanRepository.findByHouseholdId(householdId);
-        return loans.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        List<LoanResponseDTO> result = loans.stream().map(this::mapToResponseDTO).collect(Collectors.toList());
+
+        spectraLogger.info("LOANS_BY_HOUSEHOLD_SUCCESS")
+                .attr("householdId", householdId)
+                .attr("count", result.size())
+                .log();
+        return result;
     }
 
     public List<LoanResponseDTO> getLoansByStatus(String status, int page, int limit) {
+        spectraLogger.info("LOANS_BY_STATUS_ATTEMPT")
+                .attr("status", status)
+                .attr("page", page)
+                .attr("limit", limit)
+                .log();
         try {
             LoanStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
+            spectraLogger.warn("LOANS_BY_STATUS_INVALID")
+                    .attr("status", status)
+                    .log();
             throw new BusinessRuleException("Invalid loan status: " + status);
         }
 
         List<Loan> loans = loanRepository.findByStatus(status.toUpperCase());
-        return loans.stream()
+        List<LoanResponseDTO> result = loans.stream()
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+
+        spectraLogger.info("LOANS_BY_STATUS_SUCCESS")
+                .attr("status", status)
+                .attr("count", result.size())
+                .log();
+        return result;
     }
 
     @Transactional
     public void cancelLoan(Long id, String reason) {
+        spectraLogger.info("LOAN_CANCEL_ATTEMPT")
+                .attr("loanId", id)
+                .attr("reason", reason)
+                .log();
+
         Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("LOAN_CANCEL_NOT_FOUND").attr("loanId", id).log();
+                    return new ResourceNotFoundException("Loan not found");
+                });
 
         if (!"ACTIVE".equals(loan.getStatus().name()) && !"DISBURSED".equals(loan.getStatus().name())) {
+            spectraLogger.warn("LOAN_CANCEL_STATUS_INVALID")
+                    .attr("loanId", id)
+                    .attr("status", loan.getStatus().name())
+                    .log();
             throw new BusinessRuleException("Only active or disbursed loans can be cancelled");
         }
 
-        // Check if any payments have been made
         if (loan.getTotalPaid().compareTo(BigDecimal.ZERO) > 0) {
+            spectraLogger.warn("LOAN_CANCEL_HAS_PAYMENTS")
+                    .attr("loanId", id)
+                    .attr("totalPaid", loan.getTotalPaid())
+                    .log();
             throw new BusinessRuleException("Cannot cancel loan with payments already made");
         }
 
         loanRepository.updateStatus(id, "CANCELLED");
-
         atroposEventPublisher.publishLoanCancelledEvent(loan, reason);
+
+        spectraLogger.info("LOAN_CANCEL_SUCCESS")
+                .attr("loanId", id)
+                .log();
     }
 
     private BigDecimal calculateProcessingFee(BigDecimal principalAmount, LoanProduct product) {

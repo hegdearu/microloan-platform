@@ -10,6 +10,8 @@ import in.zeta.microloan.platform.repository.collectionactivity.CollectionActivi
 import in.zeta.microloan.platform.repository.overduetracking.OverdueTrackingRepository;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
+import in.zeta.spectra.capture.SpectraLogger;
+import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CollectionService {
+
+    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(CollectionService.class);
 
     private final CollectionActivityRepository activityRepository;
     private final OverdueTrackingRepository overdueRepository;
@@ -37,8 +41,17 @@ public class CollectionService {
 
     @Transactional
     public CollectionActivityResponseDTO logActivity(CollectionActivityRequestDTO dto) {
+        spectraLogger.info("COLLECTION_ACTIVITY_CREATE_ATTEMPT")
+                .attr("loanId", dto.getLoanId())
+                .attr("activityType", dto.getActivityType())
+                .log();
+
         loanRepository.findById(dto.getLoanId())
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("COLLECTION_ACTIVITY_CREATE_LOAN_NOT_FOUND")
+                            .attr("loanId", dto.getLoanId()).log();
+                    return new ResourceNotFoundException("Loan not found");
+                });
 
         CollectionActivity activity = CollectionActivity.builder()
                 .loanId(dto.getLoanId())
@@ -56,13 +69,19 @@ public class CollectionService {
         Long activityId = activityRepository.create(activity);
         activity.setId(activityId);
 
+        spectraLogger.info("COLLECTION_ACTIVITY_CREATE_SUCCESS")
+                .attr("activityId", activityId)
+                .attr("loanId", dto.getLoanId())
+                .log();
+
         return mapToResponseDTO(activity);
     }
 
     public List<OverdueLoansResponseDTO> getAllOverdueLoans() {
+        spectraLogger.info("OVERDUE_LOANS_FETCH_ATTEMPT").log();
         List<OverdueTracking> overdueList = overdueRepository.findAll();
 
-        return overdueList.stream().map(overdue -> {
+        List<OverdueLoansResponseDTO> result = overdueList.stream().map(overdue -> {
             Loan loan = loanRepository.findById(overdue.getLoanId())
                     .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
 
@@ -83,13 +102,26 @@ public class CollectionService {
                     .collectionStage(overdue.getCollectionStage())
                     .build();
         }).collect(Collectors.toList());
+
+        spectraLogger.info("OVERDUE_LOANS_FETCH_SUCCESS")
+                .attr("count", result.size())
+                .log();
+        return result;
     }
 
     public List<CollectionActivityResponseDTO> getActivitiesByLoanId(Long loanId) {
+        spectraLogger.info("COLLECTION_ACTIVITY_LIST_FETCH_ATTEMPT")
+                .attr("loanId", loanId)
+                .log();
         List<CollectionActivity> activities = activityRepository.findByLoanId(loanId);
-        return activities.stream()
+        List<CollectionActivityResponseDTO> result = activities.stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+        spectraLogger.info("COLLECTION_ACTIVITY_LIST_FETCH_SUCCESS")
+                .attr("loanId", loanId)
+                .attr("count", result.size())
+                .log();
+        return result;
     }
 
     private CollectionActivityResponseDTO mapToResponseDTO(CollectionActivity activity) {
