@@ -25,25 +25,25 @@ public class AtroposEventPublisherService {
     private final EventProducer eventProducer;
     private final Gson gson;
 
-    @Value("${event.topic.loan.issued}")
+    @Value("${event.topic.loan.issued:microloan-application-issued}")
     private String loanIssuedTopic;
 
-    @Value("${event.topic.loan.repayment}")
+    @Value("${event.topic.loan.repayment:microloan-application-repayment}")
     private String loanRepaymentTopic;
 
-    @Value("${event.topic.loan.overdue}")
+    @Value("${event.topic.loan.overdue:microloan-application-overdue}")
     private String loanOverdueTopic;
 
-    @Value("${event.topic.loan.cancelled}")
+    @Value("${event.topic.loan.cancelled:microloan-application-cancelled}")
     private String loanCancelledTopic;
 
-    @Value("${event.topic.loan.closed}")
+    @Value("${event.topic.loan.closed:microloan-application-closed}")
     private String loanClosedTopic;
 
-    @Value("${event.topic.application.approved}")
+    @Value("${event.topic.application.approved:microloan-application-approved}")
     private String applicationApprovedTopic;
 
-    @Value("${event.topic.application.rejected}")
+    @Value("${event.topic.application.rejected:microloan-application-rejected}")
     private String applicationRejectedTopic;
 
     public AtroposEventPublisherService(EventProducer eventProducer, Gson gson) {
