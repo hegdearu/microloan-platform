@@ -1,13 +1,15 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.dto.RepaymentDTO;
-import in.zeta.microloan.platform.dto.RepaymentResponseDTO;
-import in.zeta.microloan.platform.dto.RepaymentScheduleResponseDTO;
+import in.zeta.microloan.platform.dto.request.RepaymentRequestDTO;
+import in.zeta.microloan.platform.dto.response.RepaymentResponseDTO;
+import in.zeta.microloan.platform.dto.response.RepaymentScheduleResponseDTO;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.model.*;
-import in.zeta.microloan.platform.repository.RepaymentRepository;
-import in.zeta.microloan.platform.repository.RepaymentScheduleRepository;
+import in.zeta.microloan.platform.model.enums.PaymentMethod;
+import in.zeta.microloan.platform.model.enums.PaymentStatus;
+import in.zeta.microloan.platform.repository.repayment.RepaymentRepository;
+import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +40,7 @@ public class RepaymentService {
     }
 
     @Transactional
-    public RepaymentResponseDTO recordRepayment(RepaymentDTO dto, Long createdBy) {
+    public RepaymentResponseDTO recordRepayment(RepaymentRequestDTO dto, Long createdBy) {
         Loan loan = loanRepository.findById(dto.getLoanId())
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
 

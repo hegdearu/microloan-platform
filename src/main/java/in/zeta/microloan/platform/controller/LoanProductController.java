@@ -1,7 +1,7 @@
 package in.zeta.microloan.platform.controller;
 
-import in.zeta.microloan.platform.dto.LoanProductDTO;
-import in.zeta.microloan.platform.dto.LoanProductResponseDTO;
+import in.zeta.microloan.platform.dto.request.LoanProductRequestDTO;
+import in.zeta.microloan.platform.dto.response.LoanProductResponseDTO;
 import in.zeta.microloan.platform.service.LoanProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ public class LoanProductController {
 
     @PostMapping
     public ResponseEntity<LoanProductResponseDTO> createProduct(
-            @Valid @RequestBody LoanProductDTO dto) {
+            @Valid @RequestBody LoanProductRequestDTO dto) {
         LoanProductResponseDTO response = productService.createProduct(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -45,7 +45,7 @@ public class LoanProductController {
     @PutMapping("/{id}")
     public ResponseEntity<LoanProductResponseDTO> updateProduct(
             @PathVariable Long id,
-            @Valid @RequestBody LoanProductDTO dto) {
+            @Valid @RequestBody LoanProductRequestDTO dto) {
         LoanProductResponseDTO response = productService.updateProduct(id, dto);
         return ResponseEntity.ok(response);
     }

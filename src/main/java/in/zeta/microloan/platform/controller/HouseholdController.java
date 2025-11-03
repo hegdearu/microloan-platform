@@ -1,7 +1,7 @@
 package in.zeta.microloan.platform.controller;
 
-import in.zeta.microloan.platform.dto.HouseholdRegistrationDTO;
-import in.zeta.microloan.platform.dto.HouseholdResponseDTO;
+import in.zeta.microloan.platform.dto.request.HouseholdRegistrationRequestDTO;
+import in.zeta.microloan.platform.dto.response.HouseholdResponseDTO;
 import in.zeta.microloan.platform.service.HouseholdService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,7 @@ public class HouseholdController {
 
     @PostMapping
     public ResponseEntity<HouseholdResponseDTO> createHousehold(
-            @Valid @RequestBody HouseholdRegistrationDTO dto) {
+            @Valid @RequestBody HouseholdRegistrationRequestDTO dto) {
         HouseholdResponseDTO response = householdService.createHousehold(dto);
         return ResponseEntity
                 .status(HttpStatus.CREATED)

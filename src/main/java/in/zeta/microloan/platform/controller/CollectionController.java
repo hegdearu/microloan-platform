@@ -1,8 +1,8 @@
 package in.zeta.microloan.platform.controller;
 
-import in.zeta.microloan.platform.dto.CollectionActivityDTO;
-import in.zeta.microloan.platform.dto.CollectionActivityResponseDTO;
-import in.zeta.microloan.platform.dto.OverdueLoansResponseDTO;
+import in.zeta.microloan.platform.dto.request.CollectionActivityRequestDTO;
+import in.zeta.microloan.platform.dto.response.CollectionActivityResponseDTO;
+import in.zeta.microloan.platform.dto.response.OverdueLoansResponseDTO;
 import in.zeta.microloan.platform.service.CollectionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class CollectionController {
 
     @PostMapping("/activities")
     public ResponseEntity<CollectionActivityResponseDTO> logActivity(
-            @Valid @RequestBody CollectionActivityDTO dto) {
+            @Valid @RequestBody CollectionActivityRequestDTO dto) {
         CollectionActivityResponseDTO response = collectionService.logActivity(dto);
         return ResponseEntity
                 .status(HttpStatus.CREATED)

@@ -1,8 +1,8 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.model.InstallmentStatus;
+import in.zeta.microloan.platform.model.enums.InstallmentStatus;
 import in.zeta.microloan.platform.model.RepaymentSchedule;
-import in.zeta.microloan.platform.repository.RepaymentScheduleRepository;
+import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

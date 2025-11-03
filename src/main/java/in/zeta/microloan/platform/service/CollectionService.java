@@ -1,12 +1,13 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.dto.CollectionActivityDTO;
-import in.zeta.microloan.platform.dto.CollectionActivityResponseDTO;
-import in.zeta.microloan.platform.dto.OverdueLoansResponseDTO;
+import in.zeta.microloan.platform.dto.request.CollectionActivityRequestDTO;
+import in.zeta.microloan.platform.dto.response.CollectionActivityResponseDTO;
+import in.zeta.microloan.platform.dto.response.OverdueLoansResponseDTO;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.model.*;
-import in.zeta.microloan.platform.repository.CollectionActivityRepository;
-import in.zeta.microloan.platform.repository.OverdueTrackingRepository;
+import in.zeta.microloan.platform.model.enums.ContactMethod;
+import in.zeta.microloan.platform.repository.collectionactivity.CollectionActivityRepository;
+import in.zeta.microloan.platform.repository.overduetracking.OverdueTrackingRepository;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class CollectionService {
     }
 
     @Transactional
-    public CollectionActivityResponseDTO logActivity(CollectionActivityDTO dto) {
+    public CollectionActivityResponseDTO logActivity(CollectionActivityRequestDTO dto) {
         loanRepository.findById(dto.getLoanId())
                 .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
 

@@ -1,9 +1,9 @@
 package in.zeta.microloan.platform.controller;
 
-import in.zeta.microloan.platform.dto.BorrowerCreditSummaryDTO;
-import in.zeta.microloan.platform.dto.BorrowerRegistrationDTO;
-import in.zeta.microloan.platform.dto.BorrowerResponseDTO;
-import in.zeta.microloan.platform.dto.BorrowerUpdateDTO;
+import in.zeta.microloan.platform.dto.response.BorrowerCreditSummaryResponseDTO;
+import in.zeta.microloan.platform.dto.request.BorrowerRegistrationRequestDTO;
+import in.zeta.microloan.platform.dto.response.BorrowerResponseDTO;
+import in.zeta.microloan.platform.dto.request.BorrowerUpdateRequestDTO;
 import in.zeta.microloan.platform.provider.UserProvider;
 import in.zeta.microloan.platform.service.BorrowerService;
 import in.zeta.springframework.boot.commons.authorization.sandboxAccessControl.SandboxAuthorizedSync;
@@ -27,7 +27,7 @@ public class BorrowerController {
     @PostMapping("/register")
     @SandboxAuthorizedSync(action = "user.create", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> registerBorrower(
-            @Valid @RequestBody BorrowerRegistrationDTO request) {
+            @Valid @RequestBody BorrowerRegistrationRequestDTO request) {
         BorrowerResponseDTO response = borrowerService.registerBorrower(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -70,7 +70,7 @@ public class BorrowerController {
     @SandboxAuthorizedSync(action = "user.update", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerResponseDTO> updateBorrowerDetails(
             @PathVariable Long borrowerId,
-            @Valid @RequestBody BorrowerUpdateDTO request) {
+            @Valid @RequestBody BorrowerUpdateRequestDTO request) {
         BorrowerResponseDTO response = borrowerService.updateBorrower(borrowerId, request);
         return ResponseEntity.ok(response);
     }
@@ -101,9 +101,9 @@ public class BorrowerController {
 
     @GetMapping("/{borrowerId}/credit-summary")
     @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
-    public ResponseEntity<BorrowerCreditSummaryDTO> getBorrowerCreditSummary(
+    public ResponseEntity<BorrowerCreditSummaryResponseDTO> getBorrowerCreditSummary(
             @PathVariable Long borrowerId) {
-        BorrowerCreditSummaryDTO summary = borrowerService.getBorrowerCreditSummary(borrowerId);
+        BorrowerCreditSummaryResponseDTO summary = borrowerService.getBorrowerCreditSummary(borrowerId);
         return ResponseEntity.ok(summary);
     }
 }

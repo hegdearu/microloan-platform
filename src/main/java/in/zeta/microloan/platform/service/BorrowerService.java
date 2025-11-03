@@ -1,11 +1,14 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.dto.*;
+import in.zeta.microloan.platform.dto.request.BorrowerRegistrationRequestDTO;
+import in.zeta.microloan.platform.dto.request.BorrowerUpdateRequestDTO;
+import in.zeta.microloan.platform.dto.response.BorrowerCreditSummaryResponseDTO;
+import in.zeta.microloan.platform.dto.response.BorrowerResponseDTO;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
 import in.zeta.microloan.platform.model.Borrower;
-import in.zeta.microloan.platform.model.UserStatus;
+import in.zeta.microloan.platform.model.enums.UserStatus;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
 import in.zeta.microloan.platform.repository.household.HouseholdRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
@@ -38,7 +41,7 @@ public class BorrowerService {
     }
 
     @Transactional
-    public BorrowerResponseDTO registerBorrower(BorrowerRegistrationDTO dto) {
+    public BorrowerResponseDTO registerBorrower(BorrowerRegistrationRequestDTO dto) {
         // Validate age
         int age = Period.between(dto.getDob(), LocalDate.now()).getYears();
         if (age < minAgeRequirement) {
@@ -132,7 +135,7 @@ public class BorrowerService {
     }
 
     @Transactional
-    public BorrowerResponseDTO updateBorrower(Long id, BorrowerUpdateDTO dto) {
+    public BorrowerResponseDTO updateBorrower(Long id, BorrowerUpdateRequestDTO dto) {
         Borrower borrower = borrowerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
 
@@ -224,7 +227,7 @@ public class BorrowerService {
         borrowerRepository.delete(id);
     }
 
-    public BorrowerCreditSummaryDTO getBorrowerCreditSummary(Long borrowerId) {
+    public BorrowerCreditSummaryResponseDTO getBorrowerCreditSummary(Long borrowerId) {
         Borrower borrower = borrowerRepository.findById(borrowerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
 
@@ -235,7 +238,7 @@ public class BorrowerService {
         BigDecimal totalOutstanding = borrowerRepository.getTotalOutstandingAmount(borrowerId);
         BigDecimal totalPaid = borrowerRepository.getTotalPaidAmount(borrowerId);
 
-        return BorrowerCreditSummaryDTO.builder()
+        return BorrowerCreditSummaryResponseDTO.builder()
                 .borrowerId(borrowerId)
                 .borrowerName(borrower.getName())
                 .totalLoans(totalLoans)

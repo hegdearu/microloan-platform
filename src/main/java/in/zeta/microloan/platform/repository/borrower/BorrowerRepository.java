@@ -1,16 +1,12 @@
 package in.zeta.microloan.platform.repository.borrower;
 
 import in.zeta.microloan.platform.model.Borrower;
-import in.zeta.microloan.platform.model.UserStatus;
+import in.zeta.microloan.platform.model.enums.UserStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

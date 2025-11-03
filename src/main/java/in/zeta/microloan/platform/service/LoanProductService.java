@@ -1,11 +1,11 @@
 package in.zeta.microloan.platform.service;
 
-import in.zeta.microloan.platform.dto.LoanProductDTO;
-import in.zeta.microloan.platform.dto.LoanProductResponseDTO;
+import in.zeta.microloan.platform.dto.request.LoanProductRequestDTO;
+import in.zeta.microloan.platform.dto.response.LoanProductResponseDTO;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.LoanProduct;
-import in.zeta.microloan.platform.model.LoanProductStatus;
+import in.zeta.microloan.platform.model.enums.LoanProductStatus;
 import in.zeta.microloan.platform.repository.loanproduct.LoanProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ public class LoanProductService {
     }
 
     @Transactional
-    public LoanProductResponseDTO createProduct(LoanProductDTO dto) {
+    public LoanProductResponseDTO createProduct(LoanProductRequestDTO dto) {
         validateProductData(dto);
 
         LoanProduct product = LoanProduct.builder()
@@ -70,7 +70,7 @@ public class LoanProductService {
     }
 
     @Transactional
-    public LoanProductResponseDTO updateProduct(Long id, LoanProductDTO dto) {
+    public LoanProductResponseDTO updateProduct(Long id, LoanProductRequestDTO dto) {
         LoanProduct product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
 
@@ -104,7 +104,7 @@ public class LoanProductService {
 
     }
 
-    private void validateProductData(LoanProductDTO dto) {
+    private void validateProductData(LoanProductRequestDTO dto) {
         if (dto.getMinAmount().compareTo(dto.getMaxAmount()) > 0) {
             throw new ValidationException("Minimum amount cannot be greater than maximum amount");
         }
