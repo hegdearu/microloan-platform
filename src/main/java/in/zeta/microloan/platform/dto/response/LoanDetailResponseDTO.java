@@ -9,15 +9,16 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanDetailResponseDTO {
-    private Long id;
+    private UUID id;
     private String loanNumber;
-    private Long borrowerId;
+    private UUID borrowerId;
     private String borrowerName;
     private String borrowerPhone;
     private BigDecimal principalAmount;

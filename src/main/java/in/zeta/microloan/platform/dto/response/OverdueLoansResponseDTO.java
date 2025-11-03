@@ -6,13 +6,14 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @Builder
 public class OverdueLoansResponseDTO {
-    private Long loanId;
+    private UUID loanId;
     private String loanNumber;
-    private Long borrowerId;
+    private UUID borrowerId;
     private String borrowerName;
     private String borrowerPhone;
     private LocalDate overdueSince;

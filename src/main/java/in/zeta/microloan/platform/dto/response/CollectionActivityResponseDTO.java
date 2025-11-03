@@ -6,12 +6,13 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class CollectionActivityResponseDTO {
-    private Long id;
-    private Long loanId;
+    private UUID id;
+    private UUID loanId;
     private String activityType;
     private ContactMethod contactMethod;
     private String borrowerResponse;

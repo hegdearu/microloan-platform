@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,21 +69,18 @@ public class BorrowerService {
         }
 
         if (dto.getHouseholdId() != null) {
-            householdRepository.findById(dto.getHouseholdId())
-                    .orElseThrow(() -> {
-                        spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
-                                .attr("householdId", dto.getHouseholdId())
-                                .log();
-                        return new ResourceNotFoundException("Household not found");
-                    });
-        }
-
-        if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
-            if (!isValidEmail(dto.getEmail())) {
-                spectraLogger.warn("BORROWER_REGISTER_EMAIL_INVALID")
-                        .attr("email", dto.getEmail())
+            var householdOpt = householdRepository.findById(dto.getHouseholdId());
+            if (householdOpt.isEmpty()) {
+                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
+                        .attr("householdId", dto.getHouseholdId())
                         .log();
-                throw new ValidationException("Invalid email format");
+                throw new ResourceNotFoundException("Household not found");
+            }
+            if (!Boolean.TRUE.equals(householdOpt.get().getIsVerified())) {
+                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_VERIFIED")
+                        .attr("householdId", dto.getHouseholdId())
+                        .log();
+                throw new ResourceNotFoundException("Household not verified");
             }
         }
 
@@ -114,7 +112,7 @@ public class BorrowerService {
         return mapToResponseDTO(savedBorrower);
     }
 
-    public BorrowerResponseDTO getBorrowerById(Long id) {
+    public BorrowerResponseDTO getBorrowerById(UUID id) {
         spectraLogger.info("BORROWER_FETCH_BY_ID_ATTEMPT").attr("borrowerId", id).log();
         Borrower borrower = borrowerRepository.findById(id)
                 .orElseThrow(() -> {
@@ -136,7 +134,7 @@ public class BorrowerService {
         return mapToResponseDTO(borrower);
     }
 
-    public List<BorrowerResponseDTO> getBorrowersByHousehold(Long householdId) {
+    public List<BorrowerResponseDTO> getBorrowersByHousehold(UUID householdId) {
         spectraLogger.info("BORROWERS_FETCH_BY_HOUSEHOLD_ATTEMPT").attr("householdId", householdId).log();
         householdRepository.findById(householdId)
                 .orElseThrow(() -> {
@@ -186,7 +184,7 @@ public class BorrowerService {
     }
 
     @Transactional
-    public BorrowerResponseDTO updateBorrower(Long id, BorrowerUpdateRequestDTO dto) {
+    public BorrowerResponseDTO updateBorrower(UUID id, BorrowerUpdateRequestDTO dto) {
         spectraLogger.info("BORROWER_UPDATE_ATTEMPT")
                 .attr("borrowerId", id)
                 .log();
@@ -198,16 +196,7 @@ public class BorrowerService {
                 });
 
         if (dto.getName() != null) borrower.setName(dto.getName());
-        if (dto.getEmail() != null) {
-            if (!isValidEmail(dto.getEmail())) {
-                spectraLogger.warn("BORROWER_UPDATE_EMAIL_INVALID")
-                        .attr("borrowerId", id)
-                        .attr("email", dto.getEmail())
-                        .log();
-                throw new ValidationException("Invalid email format");
-            }
-            borrower.setEmail(dto.getEmail());
-        }
+        if (dto.getEmail() != null) borrower.setEmail(dto.getEmail());
         if (dto.getAddress() != null) borrower.setAddress(dto.getAddress());
         if (dto.getOccupation() != null) borrower.setOccupation(dto.getOccupation());
         if (dto.getIndividualAnnualIncome() != null) borrower.setIndividualAnnualIncome(dto.getIndividualAnnualIncome());
@@ -223,7 +212,7 @@ public class BorrowerService {
     }
 
     @Transactional
-    public BorrowerResponseDTO verifyBorrower(Long id) {
+    public BorrowerResponseDTO verifyBorrower(UUID id) {
         spectraLogger.info("BORROWER_VERIFY_ATTEMPT").attr("borrowerId", id).log();
         Borrower borrower = borrowerRepository.findById(id)
                 .orElseThrow(() -> {
@@ -244,7 +233,7 @@ public class BorrowerService {
     }
 
     @Transactional
-    public BorrowerResponseDTO updateBorrowerStatus(Long id, String statusStr) {
+    public BorrowerResponseDTO updateBorrowerStatus(UUID id, String statusStr) {
         spectraLogger.info("BORROWER_STATUS_UPDATE_ATTEMPT")
                 .attr("borrowerId", id)
                 .attr("newStatus", statusStr)
@@ -289,7 +278,7 @@ public class BorrowerService {
     }
 
     @Transactional
-    public void deleteBorrower(Long id) {
+    public void deleteBorrower(UUID id) {
         spectraLogger.info("BORROWER_DELETE_ATTEMPT").attr("borrowerId", id).log();
 
         Borrower borrower = borrowerRepository.findById(id)
@@ -311,7 +300,7 @@ public class BorrowerService {
         spectraLogger.info("BORROWER_DELETE_SUCCESS").attr("borrowerId", id).log();
     }
 
-    public BorrowerCreditSummaryResponseDTO getBorrowerCreditSummary(Long borrowerId) {
+    public BorrowerCreditSummaryResponseDTO getBorrowerCreditSummary(UUID borrowerId) {
         spectraLogger.info("BORROWER_CREDIT_SUMMARY_REQUEST").attr("borrowerId", borrowerId).log();
 
         Borrower borrower = borrowerRepository.findById(borrowerId)
@@ -347,10 +336,6 @@ public class BorrowerService {
                 .isVerified(borrower.getIsVerified())
                 .status(borrower.getStatus().name())
                 .build();
-    }
-
-    private boolean isValidEmail(String email) {
-        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
 
     private BorrowerResponseDTO mapToResponseDTO(Borrower borrower) {

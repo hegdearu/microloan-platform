@@ -12,6 +12,9 @@ import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import static in.zeta.microloan.platform.constants.LogConstants.*;
 
 @RestController
 @RequestMapping("/api/v1/loan-applications")
@@ -29,7 +32,7 @@ public class LoanApplicationController {
     public ResponseEntity<LoanApplicationResponseDTO> createApplication(
             @Valid @RequestBody LoanApplicationRequestDTO dto) {
         spectraLogger.info("LOAN_APPLICATION_CREATE_REQUEST")
-                .attr("borrowerId", dto.getBorrowerId())
+                .attr(BORROWER_ID, dto.getBorrowerId())
                 .attr("productId", dto.getProductId())
                 .attr("requestedAmount", dto.getRequestedAmount())
                 .log();
@@ -37,7 +40,7 @@ public class LoanApplicationController {
         LoanApplicationResponseDTO response = applicationService.createApplication(dto);
 
         spectraLogger.info("LOAN_APPLICATION_CREATE_SUCCESS")
-                .attr("applicationId", response.getId())
+                .attr(APPLICATION_ID, response.getId())
                 .attr("applicationNumber", response.getApplicationNumber())
                 .log();
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -45,7 +48,7 @@ public class LoanApplicationController {
 
     @GetMapping
     public ResponseEntity<List<LoanApplicationResponseDTO>> getApplications(
-            @RequestParam(required = false) Long borrowerId,
+            @RequestParam(required = false) UUID borrowerId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit) {
@@ -54,7 +57,7 @@ public class LoanApplicationController {
                 .attr("borrowerIdFilter", borrowerId)
                 .attr("statusFilter", status)
                 .attr("page", page)
-                .attr("limit", limit)
+                .attr(LIMIT, limit)
                 .log();
 
         List<LoanApplicationResponseDTO> applications;
@@ -67,76 +70,65 @@ public class LoanApplicationController {
         }
 
         spectraLogger.info("LOAN_APPLICATION_LIST_RESPONSE")
-                .attr("count", applications.size())
+                .attr(COUNT, applications.size())
                 .log();
         return ResponseEntity.ok(applications);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LoanApplicationResponseDTO> getApplication(@PathVariable Long id) {
-        spectraLogger.info("LOAN_APPLICATION_FETCH_REQUEST").attr("applicationId", id).log();
+    public ResponseEntity<LoanApplicationResponseDTO> getApplication(@PathVariable UUID id) {
+        spectraLogger.info("LOAN_APPLICATION_FETCH_REQUEST").attr(APPLICATION_ID, id).log();
         LoanApplicationResponseDTO application = applicationService.getApplicationById(id);
-        spectraLogger.info("LOAN_APPLICATION_FETCH_SUCCESS").attr("applicationId", id).log();
+        spectraLogger.info("LOAN_APPLICATION_FETCH_SUCCESS").attr(APPLICATION_ID, id).log();
         return ResponseEntity.ok(application);
     }
 
     @PutMapping("/{id}/approve")
     public ResponseEntity<LoanApplicationResponseDTO> approveApplication(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestBody Map<String, Object> request) {
 
         spectraLogger.info("LOAN_APPLICATION_APPROVE_REQUEST")
-                .attr("applicationId", id)
-                .attr("approvedByRaw", String.valueOf(request.get("approvedBy")))
-                .attr("approvedAmountRaw", String.valueOf(request.get("approvedAmount")))
+                .attr(APPLICATION_ID, id)
+                .attr("approvedAmountRaw", String.valueOf(request.get(APPROVED_AMOUNT)))
                 .log();
 
-        Long approvedBy = Long.valueOf(request.get("approvedBy").toString());
-        BigDecimal approvedAmount = new BigDecimal(request.get("approvedAmount").toString());
+        BigDecimal approvedAmount = new BigDecimal(request.get(APPROVED_AMOUNT).toString());
 
-        LoanApplicationResponseDTO response = applicationService.approveApplication(id, approvedBy, approvedAmount);
+        LoanApplicationResponseDTO response = applicationService.approveApplication(id, approvedAmount);
 
         spectraLogger.info("LOAN_APPLICATION_APPROVE_SUCCESS")
-                .attr("applicationId", id)
-                .attr("approvedAmount", approvedAmount)
-                .attr("approvedBy", approvedBy)
+                .attr(APPLICATION_ID, id)
+                .attr(APPROVED_AMOUNT, approvedAmount)
                 .log();
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/reject")
     public ResponseEntity<Void> rejectApplication(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
 
         String rejectionReason = request.get("rejectionReason");
         spectraLogger.info("LOAN_APPLICATION_REJECT_REQUEST")
-                .attr("applicationId", id)
+                .attr(APPLICATION_ID, id)
                 .attr("reason", rejectionReason)
                 .log();
 
         applicationService.rejectApplication(id, rejectionReason);
 
         spectraLogger.info("LOAN_APPLICATION_REJECT_SUCCESS")
-                .attr("applicationId", id)
+                .attr(APPLICATION_ID, id)
                 .log();
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/{id}/verify")
-    public ResponseEntity<LoanApplicationResponseDTO> moveToVerification(@PathVariable Long id) {
-        spectraLogger.info("LOAN_APPLICATION_VERIFY_REQUEST").attr("applicationId", id).log();
-        LoanApplicationResponseDTO response = applicationService.moveToVerification(id);
-        spectraLogger.info("LOAN_APPLICATION_VERIFY_SUCCESS").attr("applicationId", id).log();
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelApplication(@PathVariable Long id) {
-        spectraLogger.info("LOAN_APPLICATION_CANCEL_REQUEST").attr("applicationId", id).log();
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<Void> cancelApplication(@PathVariable UUID id) {
+        spectraLogger.info("LOAN_APPLICATION_CANCEL_REQUEST").attr(APPLICATION_ID, id).log();
         applicationService.cancelApplication(id);
-        spectraLogger.info("LOAN_APPLICATION_CANCEL_SUCCESS").attr("applicationId", id).log();
-        return ResponseEntity.noContent().build();
+        spectraLogger.info("LOAN_APPLICATION_CANCEL_SUCCESS").attr(APPLICATION_ID, id).log();
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/pending")
@@ -146,11 +138,11 @@ public class LoanApplicationController {
 
         spectraLogger.info("LOAN_APPLICATION_PENDING_LIST_REQUEST")
                 .attr("page", page)
-                .attr("limit", limit)
+                .attr(LIMIT, limit)
                 .log();
         List<LoanApplicationResponseDTO> applications = applicationService.getPendingApplications(page, limit);
         spectraLogger.info("LOAN_APPLICATION_PENDING_LIST_RESPONSE")
-                .attr("count", applications.size())
+                .attr(COUNT, applications.size())
                 .log();
         return ResponseEntity.ok(applications);
     }
@@ -162,25 +154,12 @@ public class LoanApplicationController {
 
         spectraLogger.info("LOAN_APPLICATION_EXPIRED_LIST_REQUEST")
                 .attr("page", page)
-                .attr("limit", limit)
+                .attr(LIMIT, limit)
                 .log();
         List<LoanApplicationResponseDTO> applications = applicationService.getExpiredApplications(page, limit);
         spectraLogger.info("LOAN_APPLICATION_EXPIRED_LIST_RESPONSE")
-                .attr("count", applications.size())
+                .attr(COUNT, applications.size())
                 .log();
         return ResponseEntity.ok(applications);
-    }
-
-    @GetMapping("/borrower/{borrowerId}/latest")
-    public ResponseEntity<LoanApplicationResponseDTO> getLatestApplication(@PathVariable Long borrowerId) {
-        spectraLogger.info("LOAN_APPLICATION_LATEST_BY_BORROWER_REQUEST")
-                .attr("borrowerId", borrowerId)
-                .log();
-        LoanApplicationResponseDTO application = applicationService.getLatestApplicationByBorrower(borrowerId);
-        spectraLogger.info("LOAN_APPLICATION_LATEST_BY_BORROWER_SUCCESS")
-                .attr("borrowerId", borrowerId)
-                .attr("applicationId", application.getId())
-                .log();
-        return ResponseEntity.ok(application);
     }
 }

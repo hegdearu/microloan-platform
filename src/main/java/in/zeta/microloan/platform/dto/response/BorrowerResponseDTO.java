@@ -6,16 +6,17 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class BorrowerResponseDTO {
-    private Long id;
+    private UUID id;
     private String name;
     private String phone;
     private String email;
     private LocalDate dob;
-    private Long householdId;
+    private UUID householdId;
     private String relationshipToHead;
     private Boolean isHouseholdHead;
     private BigDecimal individualAnnualIncome;

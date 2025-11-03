@@ -8,14 +8,15 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RepaymentSchedule {
-    private Long id;
-    private Long loanId;
+    private UUID id;
+    private UUID loanId;
     private Integer installmentNumber;
     private LocalDate dueDate;
     private BigDecimal principalDue;

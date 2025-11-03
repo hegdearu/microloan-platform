@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public class RepaymentRepository {
@@ -23,11 +24,11 @@ public class RepaymentRepository {
     }
 
     private final RowMapper<Repayment> rowMapper = (rs, rowNum) -> Repayment.builder()
-            .id(rs.getLong("id"))
+            .id(rs.getObject("id", UUID.class))
             .receiptNumber(rs.getString("receipt_number"))
-            .loanId(rs.getLong("loan_id"))
-            .borrowerId(rs.getLong("borrower_id"))
-            .householdId(rs.getObject("household_id", Long.class))
+            .loanId(rs.getObject("loan_id", UUID.class))
+            .borrowerId(rs.getObject("borrower_id", UUID.class))
+            .householdId(rs.getObject("household_id", UUID.class))
             .amount(rs.getBigDecimal("amount"))
             .principalPaid(rs.getBigDecimal("principal_paid"))
             .interestPaid(rs.getBigDecimal("interest_paid"))
@@ -43,7 +44,7 @@ public class RepaymentRepository {
             .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
             .build();
 
-    public Long create(Repayment repayment) {
+    public UUID create(Repayment repayment) {
         String sql = "INSERT INTO public.repayments (receipt_number, loan_id, borrower_id, household_id, " +
                 "amount, principal_paid, interest_paid, late_fee_paid, advance_payment, payment_date, " +
                 "payment_method, transaction_ref, notes, status, created_by) " +
@@ -54,8 +55,8 @@ public class RepaymentRepository {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, repayment.getReceiptNumber());
-            ps.setLong(2, repayment.getLoanId());
-            ps.setLong(3, repayment.getBorrowerId());
+            ps.setObject(2, repayment.getLoanId());
+            ps.setObject(3, repayment.getBorrowerId());
             ps.setObject(4, repayment.getHouseholdId());
             ps.setBigDecimal(5, repayment.getAmount());
             ps.setBigDecimal(6, repayment.getPrincipalPaid());
@@ -71,11 +72,11 @@ public class RepaymentRepository {
             return ps;
         }, keyHolder);
 
-        Number key = (Number) keyHolder.getKeys().get("id");
-        return key.longValue();
+        UUID key = (UUID) keyHolder.getKeys().get("id");
+        return key;
     }
 
-    public List<Repayment> findByLoanId(Long loanId) {
+    public List<Repayment> findByLoanId(UUID loanId) {
         String sql = "SELECT * FROM public.repayments WHERE loan_id = ? ORDER BY payment_date DESC";
         return jdbcTemplate.query(sql, rowMapper, loanId);
     }

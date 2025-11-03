@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class LoanApplicationRepository {
@@ -25,16 +26,15 @@ public class LoanApplicationRepository {
     }
 
     private final RowMapper<LoanApplication> rowMapper = (rs, rowNum) -> LoanApplication.builder()
-            .id(rs.getLong("id"))
+            .id(rs.getObject("id", UUID.class))
             .applicationNumber(rs.getString("application_number"))
-            .borrowerId(rs.getLong("borrower_id"))
-            .productId(rs.getLong("product_id"))
+            .borrowerId(rs.getObject("borrower_id", UUID.class))
+            .productId(rs.getObject("product_id", UUID.class))
             .requestedAmount(rs.getBigDecimal("requested_amount"))
             .purpose(rs.getString("purpose"))
             .preferredTenure(rs.getInt("preferred_tenure"))
             .status(LoanApplicationStatus.valueOf(rs.getString("status")))
             .approvedAmount(rs.getBigDecimal("approved_amount"))
-            .approvedBy(rs.getObject("approved_by", Long.class))
             .approvedAt(rs.getTimestamp("approved_at") != null ?
                     rs.getTimestamp("approved_at").toLocalDateTime() : null)
             .rejectionReason(rs.getString("rejection_reason"))
@@ -53,8 +53,8 @@ public class LoanApplicationRepository {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, application.getApplicationNumber());
-            ps.setLong(2, application.getBorrowerId());
-            ps.setLong(3, application.getProductId());
+            ps.setObject(2, application.getBorrowerId());
+            ps.setObject(3, application.getProductId());
             ps.setBigDecimal(4, application.getRequestedAmount());
             ps.setString(5, application.getPurpose());
             ps.setInt(6, application.getPreferredTenure());
@@ -63,23 +63,23 @@ public class LoanApplicationRepository {
             return ps;
         }, keyHolder);
 
-        application.setId(((Number) keyHolder.getKeys().get("id")).longValue());
+        application.setId(UUID.fromString(keyHolder.getKeys().get("id").toString()));
         return application;
     }
 
-    public Optional<LoanApplication> findById(Long id) {
+    public Optional<LoanApplication> findById(UUID id) {
         String sql = "SELECT * FROM public.loan_applications WHERE id = ?";
         List<LoanApplication> results = jdbcTemplate.query(sql, rowMapper, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
-    public List<LoanApplication> findByBorrowerId(Long borrowerId) {
+    public List<LoanApplication> findByBorrowerId(UUID borrowerId) {
         String sql = "SELECT * FROM public.loan_applications WHERE borrower_id = ? " +
                 "ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, rowMapper, borrowerId);
     }
 
-    public Optional<LoanApplication> findLatestByBorrowerId(Long borrowerId) {
+    public Optional<LoanApplication> findLatestByBorrowerId(UUID borrowerId) {
         String sql = "SELECT * FROM public.loan_applications WHERE borrower_id = ? " +
                 "ORDER BY created_at DESC LIMIT 1";
         List<LoanApplication> results = jdbcTemplate.query(sql, rowMapper, borrowerId);
@@ -113,26 +113,25 @@ public class LoanApplicationRepository {
         return jdbcTemplate.query(sql, rowMapper);
     }
 
-    public boolean hasPendingApplication(Long borrowerId) {
+    public boolean hasPendingApplication(UUID borrowerId) {
         String sql = "SELECT COUNT(*) FROM public.loan_applications WHERE borrower_id = ? " +
                 "AND status IN ('PENDING_REVIEW', 'UNDER_VERIFICATION')";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
         return count != null && count > 0;
     }
 
-    public void approve(Long id, Long approvedBy, BigDecimal approvedAmount) {
+    public void approve(UUID id, BigDecimal approvedAmount) {
         String sql = "UPDATE public.loan_applications SET status = ?, approved_amount = ?, " +
-                "approved_by = ?, approved_at = ? WHERE id = ?";
+                 "approved_at = ? WHERE id = ?";
         jdbcTemplate.update(sql,
                 LoanApplicationStatus.APPROVED.name(),
                 approvedAmount,
-                approvedBy,
                 LocalDateTime.now(),
                 id
         );
     }
 
-    public void reject(Long id, String rejectionReason) {
+    public void reject(UUID id, String rejectionReason) {
         String sql = "UPDATE public.loan_applications SET status = ?, rejection_reason = ? " +
                 "WHERE id = ?";
         jdbcTemplate.update(sql,
@@ -142,17 +141,31 @@ public class LoanApplicationRepository {
         );
     }
 
-    public void updateStatus(Long id, LoanApplicationStatus status) {
+    public void cancel(UUID id) {
+        String sql = "UPDATE public.loan_applications SET status = ?, updated_at = ? WHERE id = ?";
+        jdbcTemplate.update(sql,
+                LoanApplicationStatus.CANCELLED.name(),
+                LocalDateTime.now(),
+                id
+        );
+    }
+
+    public void updateStatus(UUID id, LoanApplicationStatus status) {
         String sql = "UPDATE public.loan_applications SET status = ? WHERE id = ?";
         jdbcTemplate.update(sql, status.name(), id);
     }
 
-    public void delete(Long id) {
-        String sql = "DELETE FROM public.loan_applications WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+    public int expirePendingApplications() {
+        String sql = "UPDATE public.loan_applications " +
+                "SET status = ?, updated_at = NOW() " +
+                "WHERE status =  " +
+                "AND expires_at < NOW()";
+        return jdbcTemplate.update(sql,
+                LoanApplicationStatus.EXPIRED.name(),
+                LoanApplicationStatus.PENDING_REVIEW.name());
     }
 
-    public int countByBorrowerAndStatus(Long borrowerId, LoanApplicationStatus status) {
+    public int countByBorrowerAndStatus(UUID borrowerId, LoanApplicationStatus status) {
         String sql = "SELECT COUNT(*) FROM public.loan_applications " +
                 "WHERE borrower_id = ? AND status = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId, status.name());

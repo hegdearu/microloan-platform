@@ -6,12 +6,13 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 public class CollectionActivityRequestDTO {
 
     @NotNull(message = "Loan ID is required")
-    private Long loanId;
+    private UUID loanId;
 
     @NotBlank(message = "Activity type is required")
     private String activityType;
@@ -28,7 +29,7 @@ public class CollectionActivityRequestDTO {
     private String notes;
 
     @NotNull(message = "Assigned agent is required")
-    private Long assignedTo;
+    private UUID assignedTo;
 
     private LocalDate nextFollowUpDate;
 }

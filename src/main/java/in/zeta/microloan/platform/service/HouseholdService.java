@@ -10,9 +10,11 @@ import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 public class HouseholdService {
@@ -55,7 +57,7 @@ public class HouseholdService {
         return mapToResponseDTO(stored);
     }
 
-    public HouseholdResponseDTO getHouseholdById(Long id) {
+    public HouseholdResponseDTO getHouseholdById(UUID id) {
         spectraLogger.info("HOUSEHOLD_FETCH_BY_ID_ATTEMPT").attr("householdId", id).log();
         Household household = householdRepository.findById(id)
                 .orElseThrow(() -> {
@@ -63,6 +65,18 @@ public class HouseholdService {
                     return new ResourceNotFoundException("Household not found");
                 });
         spectraLogger.info("HOUSEHOLD_FETCH_BY_ID_SUCCESS").attr("householdId", id).log();
+        return mapToResponseDTO(household);
+    }
+
+    public HouseholdResponseDTO verifyHousehold(UUID id) {
+        Household household = householdRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Household not found"));
+        if (Boolean.TRUE.equals(household.getIsVerified())) {
+            return mapToResponseDTO(household);
+        }
+        household.setIsVerified(true);
+        household.setIncomeVerifiedDate(LocalDate.now());
+        householdRepository.update(household);
         return mapToResponseDTO(household);
     }
 

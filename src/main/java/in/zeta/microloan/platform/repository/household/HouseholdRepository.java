@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class HouseholdRepository {
@@ -23,7 +24,7 @@ public class HouseholdRepository {
     }
 
     private final RowMapper<Household> rowMapper = (rs, rowNum) -> Household.builder()
-            .id(rs.getLong("id"))
+            .id(rs.getObject("id", UUID.class))
             .householdNumber(rs.getString("household_number"))
             .primaryAddress(rs.getString("primary_address"))
             .pincode(rs.getString("pincode"))
@@ -51,7 +52,7 @@ public class HouseholdRepository {
     """;
 
         return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-                    household.setId(rs.getLong("id"));
+                    household.setId(rs.getObject("id", UUID.class));
                     household.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     household.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                     return household;
@@ -68,7 +69,7 @@ public class HouseholdRepository {
                 household.getIsVerified());
     }
 
-    public Optional<Household> findById(Long id) {
+    public Optional<Household> findById(UUID id) {
         String sql = "SELECT * FROM public.households WHERE id = ?";
         List<Household> results = jdbcTemplate.query(sql, rowMapper, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));

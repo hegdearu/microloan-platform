@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class BorrowerRepository {
@@ -21,12 +22,12 @@ public class BorrowerRepository {
     }
 
     private final RowMapper<Borrower> rowMapper = (rs, rowNum) -> Borrower.builder()
-            .id(rs.getLong("id"))
+            .id(rs.getObject("id", UUID.class))
             .name(rs.getString("name"))
             .phone(rs.getString("phone"))
             .email(rs.getString("email"))
             .dob(rs.getDate("dob").toLocalDate())
-            .householdId(rs.getObject("household_id", Long.class))
+            .householdId(rs.getObject("household_id", UUID.class))
             .relationshipToHead(rs.getString("relationship_to_head"))
             .isHouseholdHead(rs.getBoolean("is_household_head"))
             .individualAnnualIncome(rs.getBigDecimal("individual_annual_income"))
@@ -57,7 +58,7 @@ public class BorrowerRepository {
     """;
 
         return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
-                    borrower.setId(rs.getLong("id"));
+                    borrower.setId(rs.getObject("id", UUID.class));
                     borrower.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     borrower.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                     return borrower;
@@ -102,12 +103,12 @@ public class BorrowerRepository {
         );
     }
 
-    public void delete(Long id) {
+    public void delete(UUID id) {
         String sql = "DELETE FROM public.borrowers WHERE id = ?";
         jdbcTemplate.update(sql, id);
     }
 
-    public Optional<Borrower> findById(Long id) {
+    public Optional<Borrower> findById(UUID id) {
         String sql = "SELECT * FROM public.borrowers WHERE id = ?";
         List<Borrower> results = jdbcTemplate.query(sql, rowMapper, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
@@ -119,7 +120,7 @@ public class BorrowerRepository {
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
-    public List<Borrower> findByHouseholdId(Long householdId) {
+    public List<Borrower> findByHouseholdId(UUID householdId) {
         String sql = "SELECT * FROM public.borrowers WHERE household_id = ? ORDER BY created_at DESC";
         return jdbcTemplate.query(sql, rowMapper, householdId);
     }
@@ -134,44 +135,44 @@ public class BorrowerRepository {
         return jdbcTemplate.query(sql, rowMapper);
     }
 
-    public int countActiveLoansByBorrower(Long borrowerId) {
+    public int countActiveLoansByBorrower(UUID borrowerId) {
         String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ? " +
                 "AND status IN ('ACTIVE', 'OVERDUE')";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
         return count != null ? count : 0;
     }
 
-    public int countAllLoansByBorrower(Long borrowerId) {
+    public int countAllLoansByBorrower(UUID borrowerId) {
         String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
         return count != null ? count : 0;
     }
 
-    public int countClosedLoansByBorrower(Long borrowerId) {
+    public int countClosedLoansByBorrower(UUID borrowerId) {
         String sql = "SELECT COUNT(*) FROM public.loans WHERE borrower_id = ? AND status = 'CLOSED'";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, borrowerId);
         return count != null ? count : 0;
     }
 
-    public BigDecimal getTotalDisbursedAmount(Long borrowerId) {
+    public BigDecimal getTotalDisbursedAmount(UUID borrowerId) {
         String sql = "SELECT COALESCE(SUM(principal_amount), 0) FROM public.loans " +
                 "WHERE borrower_id = ?";
         return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
     }
 
-    public BigDecimal getTotalOutstandingAmount(Long borrowerId) {
+    public BigDecimal getTotalOutstandingAmount(UUID borrowerId) {
         String sql = "SELECT COALESCE(SUM(total_outstanding), 0) FROM public.loans " +
                 "WHERE borrower_id = ? AND status IN ('ACTIVE', 'OVERDUE')";
         return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
     }
 
-    public BigDecimal getTotalPaidAmount(Long borrowerId) {
+    public BigDecimal getTotalPaidAmount(UUID borrowerId) {
         String sql = "SELECT COALESCE(SUM(total_paid), 0) FROM public.loans " +
                 "WHERE borrower_id = ?";
         return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
     }
 
-    public int countActiveLoansByHousehold(Long householdId) {
+    public int countActiveLoansByHousehold(UUID householdId) {
         String sql = "SELECT COUNT(*) FROM public.loans WHERE household_id = ? " +
                 "AND status IN ('ACTIVE', 'OVERDUE')";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, householdId);

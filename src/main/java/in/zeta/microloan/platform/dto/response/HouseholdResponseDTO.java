@@ -5,11 +5,12 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class HouseholdResponseDTO {
-    private Long id;
+    private UUID id;
     private String householdNumber;
     private String primaryAddress;
     private String city;

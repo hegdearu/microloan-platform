@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 public class BorrowerRegistrationRequestDTO {
@@ -24,9 +25,9 @@ public class BorrowerRegistrationRequestDTO {
     @Past(message = "Date of birth must be in the past")
     private LocalDate dob;
 
-    private Long householdId;
+    private UUID householdId;
 
-    private String relationshipToHead; // SELF, SPOUSE, PARENT, CHILD, SIBLING, OTHER
+    private String relationshipToHead;
 
     private Boolean isHouseholdHead;
 
@@ -41,7 +42,7 @@ public class BorrowerRegistrationRequestDTO {
     private String address;
 
     @NotBlank(message = "ID proof type is required")
-    private String idProofType; // AADHAAR, PAN, VOTER_ID, PASSPORT, DRIVING_LICENSE
+    private String idProofType;
 
     @NotBlank(message = "ID proof number is required")
     private String idProofNumber;

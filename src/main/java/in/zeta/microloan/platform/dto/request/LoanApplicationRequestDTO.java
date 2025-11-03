@@ -3,15 +3,16 @@ package in.zeta.microloan.platform.dto.request;
 import lombok.Data;
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 public class LoanApplicationRequestDTO {
 
     @NotNull(message = "Borrower ID is required")
-    private Long borrowerId;
+    private UUID borrowerId;
 
     @NotNull(message = "Product ID is required")
-    private Long productId;
+    private UUID productId;
 
     @NotNull(message = "Requested amount is required")
     @DecimalMin(value = "5000.00", message = "Minimum loan amount is ₹5,000")

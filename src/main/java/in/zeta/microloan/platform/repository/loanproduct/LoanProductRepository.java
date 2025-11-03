@@ -13,6 +13,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class LoanProductRepository {
@@ -24,7 +25,7 @@ public class LoanProductRepository {
     }
 
     private final RowMapper<LoanProduct> rowMapper = (rs, rowNum) -> LoanProduct.builder()
-            .id(rs.getLong("id"))
+            .id(rs.getObject("id", UUID.class))
             .name(rs.getString("name"))
             .description(rs.getString("description"))
             .minAmount(rs.getBigDecimal("min_amount"))
@@ -54,13 +55,13 @@ public class LoanProductRepository {
         return jdbcTemplate.query(sql, rowMapper);
     }
 
-    public Optional<LoanProduct> findById(Long id) {
+    public Optional<LoanProduct> findById(UUID id) {
         String sql = "SELECT * FROM public.loan_products WHERE id = ?";
         List<LoanProduct> results = jdbcTemplate.query(sql, rowMapper, id);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
-    public Long create(LoanProduct product) {
+    public UUID create(LoanProduct product) {
         String sql = "INSERT INTO public.loan_products (name, description, min_amount, max_amount, " +
                 "interest_rate, processing_fee_type, processing_fee_value, tenure_months, " +
                 "grace_period_days, late_fee_percent, max_late_fee_percent, " +
@@ -92,18 +93,15 @@ public class LoanProductRepository {
         }, keyHolder);
 
         Object idObj = keyHolder.getKeys().get("id");
-        if (idObj instanceof Number) {
-            return ((Number) idObj).longValue();
-        } else {
-            throw new IllegalStateException("Failed to retrieve generated Product id");
-        }
+        return UUID.fromString(idObj.toString());
+
     }
 
     public void update(LoanProduct product) {
         String sql = "UPDATE public.loan_products SET name = ?, description = ?, min_amount = ?, " +
                 "max_amount = ?, interest_rate = ?, processing_fee_type = ?, processing_fee_value = ?, " +
                 "tenure_months = ?, grace_period_days = ?, late_fee_percent = ?, max_late_fee_percent = ?, " +
-                "prepayment_charges_type = ?, prepayment_charges_value = ?, status = ?, updated_at = ? " +
+                "prepayment_charges_type = ?, prepayment_charges_value = ?, status = ? " +
                 "WHERE id = ?";
 
         jdbcTemplate.update(sql,
@@ -121,13 +119,12 @@ public class LoanProductRepository {
                 product.getPrepaymentChargesType(),
                 product.getPrepaymentChargesValue(),
                 product.getStatus().name(),
-                LocalDateTime.now(),
                 product.getId()
         );
     }
 
-    public void delete(Long id) {
-        String sql = "UPDATE public.loan_products SET status = 'ARCHIVED', updated_at = ? WHERE id = ?";
+    public void delete(UUID id) {
+        String sql = "UPDATE public.loan_products SET status = 'DELETED', updated_at = ? WHERE id = ?";
         jdbcTemplate.update(sql, LocalDateTime.now(), id);
     }
 }
