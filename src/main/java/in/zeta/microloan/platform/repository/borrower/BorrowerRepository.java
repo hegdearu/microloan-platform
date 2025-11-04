@@ -169,11 +169,4 @@ public class BorrowerRepository {
                 "WHERE borrower_id = ?";
         return jdbcTemplate.queryForObject(sql, BigDecimal.class, borrowerId);
     }
-
-    public int countActiveLoansByHousehold(UUID householdId) {
-        String sql = "SELECT COUNT(*) FROM public.loans WHERE household_id = ? " +
-                "AND status IN ('ACTIVE', 'OVERDUE')";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, householdId);
-        return count != null ? count : 0;
-    }
 }

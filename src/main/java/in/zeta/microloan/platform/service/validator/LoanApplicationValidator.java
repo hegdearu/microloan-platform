@@ -4,6 +4,7 @@ import in.zeta.microloan.platform.dto.request.LoanApplicationRequestDTO;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.Borrower;
+import in.zeta.microloan.platform.model.LoanApplication;
 import in.zeta.microloan.platform.model.LoanProduct;
 import org.springframework.stereotype.Component;
 
@@ -42,9 +43,9 @@ public class LoanApplicationValidator {
         }
     }
 
-    public void validateApproveAmount(BigDecimal approvedAmount, LoanProduct product) {
+    public void validateApproveAmount(BigDecimal approvedAmount, LoanProduct product, LoanApplication application) {
         if (approvedAmount.compareTo(product.getMinAmount()) < 0 ||
-                approvedAmount.compareTo(product.getMaxAmount()) > 0) {
+                approvedAmount.compareTo(product.getMaxAmount()) > 0 && application.getRequestedAmount().compareTo(approvedAmount) > 0) {
             throw new ValidationException(String.format("Approved amount must be between ₹%s and ₹%s",
                     product.getMinAmount(), product.getMaxAmount()));
         }

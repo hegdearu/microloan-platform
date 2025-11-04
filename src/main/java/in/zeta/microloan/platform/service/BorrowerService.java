@@ -249,22 +249,6 @@ public class BorrowerService {
         return mapper.toResponse(borrower);
     }
 
-    @Transactional
-    public void deleteBorrower(UUID id) {
-        spectraLogger.info("BORROWER_DELETE_ATTEMPT").attr(BORROWER_ID, id).log();
-
-        borrowerRepository.findById(id)
-                .orElseThrow(() -> {
-                    spectraLogger.warn("BORROWER_DELETE_NOT_FOUND").attr(BORROWER_ID, id).log();
-                    return new ResourceNotFoundException(Error.BORROWER_NOT_FOUND);
-                });
-
-        validator.validateDeletion(id);
-
-        borrowerRepository.delete(id);
-        spectraLogger.info("BORROWER_DELETE_SUCCESS").attr(BORROWER_ID, id).log();
-    }
-
     public BorrowerCreditSummaryResponseDTO getBorrowerCreditSummary(UUID borrowerId) {
         spectraLogger.info("BORROWER_CREDIT_SUMMARY_REQUEST").attr(BORROWER_ID, borrowerId).log();
 

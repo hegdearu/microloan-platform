@@ -273,20 +273,6 @@ class BorrowerControllerTest {
     }
 
     @Test
-    void testDeleteBorrower_Success() {
-        // Arrange
-        doNothing().when(borrowerService).deleteBorrower(borrowerId);
-
-        // Act
-        ResponseEntity<Void> response = borrowerController.deleteBorrower(borrowerId);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        verify(borrowerService, times(1)).deleteBorrower(borrowerId);
-    }
-
-    @Test
     void testGetBorrowerCreditSummary_Success() {
         // Arrange
         BorrowerCreditSummaryResponseDTO summaryDTO = BorrowerCreditSummaryResponseDTO.builder()
