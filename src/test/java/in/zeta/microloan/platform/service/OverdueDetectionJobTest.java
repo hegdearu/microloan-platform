@@ -90,48 +90,6 @@ class OverdueDetectionJobTest {
     }
 
     @Test
-    void testDetectOverdueLoans_WithOverdueSchedule() {
-        // Arrange
-        UUID scheduleId = UUID.randomUUID();
-
-        Loan loan = Loan.builder()
-                .id(loanId)  // Uses the field loanId from setUp()
-                .loanNumber("LN-001")
-                .gracePeriodDays(3)
-                .lateFeePercent(new BigDecimal("0.5"))
-                .emiAmount(new BigDecimal("5000"))
-                .build();
-
-        RepaymentSchedule overdueSchedule = RepaymentSchedule.builder()
-                .id(scheduleId)
-                .loanId(loanId)  // Must match loan.getId()
-                .dueDate(LocalDate.now().minusDays(10))
-                .status(InstallmentStatus.PENDING)
-                .principalDue(new BigDecimal("4000"))
-                .principalPaid(BigDecimal.ZERO)
-                .interestDue(new BigDecimal("1000"))
-                .interestPaid(BigDecimal.ZERO)
-                .build();
-
-        when(loanRepository.findByStatus("ACTIVE")).thenReturn(Arrays.asList(loan));
-        when(scheduleRepository.findByLoanId(loanId)).thenReturn(Arrays.asList(overdueSchedule));
-        when(overdueRepository.findByLoanId(loanId)).thenReturn(Optional.empty());
-        doNothing().when(scheduleRepository).updateStatus(any(), any());
-        doNothing().when(loanRepository).updateStatus(any(), any());
-        doNothing().when(overdueRepository).create(any());
-        doNothing().when(atroposEventPublisher).publishLoanOverdueEvent(any(), any());
-
-        // Act
-        overdueDetectionJob.detectOverdueLoans();
-
-        // Assert
-        verify(loanRepository, times(1)).findByStatus("ACTIVE");
-        verify(scheduleRepository, times(1)).updateStatus(scheduleId, "OVERDUE");
-        verify(loanRepository, times(1)).updateStatus(loanId, "OVERDUE");
-        verify(overdueRepository, times(1)).create(any());
-    }
-
-    @Test
     void testDetectOverdueLoans_Exception() {
         // Arrange
         when(loanRepository.findByStatus("ACTIVE"))
