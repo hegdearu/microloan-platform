@@ -29,6 +29,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static in.zeta.microloan.platform.exception.Error.LOAN_NOT_FOUND;
+
 @Service
 public class RepaymentService {
 
@@ -68,7 +70,7 @@ public class RepaymentService {
                 .log();
 
         Loan loan = loanRepository.findById(dto.getLoanId())
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
 
         List<RepaymentSchedule> pendingSchedules = scheduleRepository.findPendingByLoanId(dto.getLoanId());
         if (pendingSchedules.isEmpty()) {

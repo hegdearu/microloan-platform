@@ -18,6 +18,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Random;
 import java.util.UUID;
 
+import static in.zeta.microloan.platform.exception.Error.HOUSEHOLD_NOT_FOUND;
+
 @Service
 public class HouseholdService {
 
@@ -72,7 +74,7 @@ public class HouseholdService {
         Household household = householdRepository.findById(id)
                 .orElseThrow(() -> {
                     spectraLogger.warn("HOUSEHOLD_FETCH_BY_ID_NOT_FOUND").attr("householdId", id).log();
-                    return new ResourceNotFoundException("Household not found");
+                    return new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND);
                 });
         spectraLogger.info("HOUSEHOLD_FETCH_BY_ID_SUCCESS").attr("householdId", id).log();
         return mapper.toResponse(household);

@@ -1,6 +1,5 @@
 package in.zeta.microloan.platform.config;
 
-import in.zeta.springframework.boot.commons.postgres.GenericPostgresDAO;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
