@@ -18,6 +18,9 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.UUID;
 
+import static in.zeta.microloan.platform.constants.LogConstants.BORROWER_ID;
+import static in.zeta.microloan.platform.exception.Error.HOUSEHOLD_NOT_FOUND;
+
 @Component
 public class BorrowerValidator {
 
@@ -57,7 +60,7 @@ public class BorrowerValidator {
                 spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
                         .attr("householdId", dto.getHouseholdId())
                         .log();
-                return new ResourceNotFoundException("Household not found");
+                return new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND);
             });
         }
 
@@ -75,7 +78,7 @@ public class BorrowerValidator {
     public void validateVerification(Borrower borrower) {
         if (borrower.getIsVerified()) {
             spectraLogger.warn("BORROWER_VERIFY_ALREADY_VERIFIED")
-                    .attr("borrowerId", borrower.getId())
+                    .attr(BORROWER_ID, borrower.getId())
                     .log();
             throw new BusinessRuleException("Borrower is already verified");
         }
@@ -87,7 +90,7 @@ public class BorrowerValidator {
             status = UserStatus.valueOf(statusStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             spectraLogger.warn("BORROWER_STATUS_UPDATE_INVALID_STATUS")
-                    .attr("borrowerId", borrowerId)
+                    .attr(BORROWER_ID, borrowerId)
                     .attr("status", statusStr)
                     .log();
             throw new ValidationException("Invalid status: " + statusStr);
@@ -97,7 +100,7 @@ public class BorrowerValidator {
             int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrowerId);
             if (activeLoans > 0) {
                 spectraLogger.warn("BORROWER_STATUS_UPDATE_ACTIVE_LOANS_BLOCKED")
-                        .attr("borrowerId", borrowerId)
+                        .attr(BORROWER_ID, borrowerId)
                         .attr("activeLoans", activeLoans)
                         .log();
                 throw new BusinessRuleException(
@@ -111,7 +114,7 @@ public class BorrowerValidator {
         int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrowerId);
         if (activeLoans > 0) {
             spectraLogger.warn("BORROWER_DELETE_ACTIVE_LOANS_BLOCKED")
-                    .attr("borrowerId", borrowerId)
+                    .attr(BORROWER_ID, borrowerId)
                     .attr("activeLoans", activeLoans)
                     .log();
             throw new BusinessRuleException(

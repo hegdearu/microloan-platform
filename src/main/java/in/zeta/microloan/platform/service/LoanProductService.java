@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static in.zeta.microloan.platform.exception.Error.LOAN_PRODUCT_NOT_FOUND;
+
 @Service
 public class LoanProductService {
 
@@ -81,14 +83,14 @@ public class LoanProductService {
 
     public LoanProductResponseDTO getProductById(UUID id) {
         LoanProduct product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
         return mapper.toResponse(product);
     }
 
     @Transactional
     public LoanProductResponseDTO updateProduct(UUID id, LoanProductRequestDTO dto) {
         LoanProduct product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
         validator.validate(dto);
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
@@ -110,7 +112,7 @@ public class LoanProductService {
     @Transactional
     public void deleteProduct(UUID id) {
         productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
         productRepository.delete(id);
     }
 }

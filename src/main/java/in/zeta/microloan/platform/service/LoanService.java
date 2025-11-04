@@ -22,7 +22,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static in.zeta.microloan.platform.constants.LogConstants.*;
+import static in.zeta.microloan.platform.constants.LogConstants.COUNT;
+import static in.zeta.microloan.platform.exception.Error.*;
+import static in.zeta.microloan.platform.exception.Error.LOAN_NOT_FOUND;
 
 @Service
 public class LoanService {
@@ -72,16 +76,16 @@ public class LoanService {
         LoanApplication application = null;
         if (dto.getApplicationId() != null) {
             application = applicationRepository.findById(dto.getApplicationId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Loan application not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException(LOAN_APPLICATION_NOT_FOUND));
             if (loanRepository.existsByApplicationId(dto.getApplicationId())) {
                 throw new RuntimeException("Loan already exists for this application");
             }
         }
 
         LoanProduct product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
         Borrower borrower = borrowerRepository.findById(dto.getBorrowerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(BORROWER_NOT_FOUND));
 
         loanValidator.validateCreate(dto, application, product, borrower);
 
@@ -141,7 +145,7 @@ public class LoanService {
                 .orElse(loanMapper.toResponse(loan));
 
         log.info("LOAN_CREATE_SUCCESS")
-                .attr("loanId", response.getId())
+                .attr(LOAN_ID, response.getId())
                 .attr("loanNumber", response.getLoanNumber())
                 .attr("emiAmount", response.getEmiAmount())
                 .log();
@@ -149,69 +153,69 @@ public class LoanService {
     }
 
     public LoanResponseDTO getLoanById(UUID id) {
-        log.info("LOAN_FETCH_BY_ID_ATTEMPT").attr("loanId", id).log();
+        log.info("LOAN_FETCH_BY_ID_ATTEMPT").attr(LOAN_ID, id).log();
         Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
-        log.info("LOAN_FETCH_BY_ID_SUCCESS").attr("loanId", id).log();
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
+        log.info("LOAN_FETCH_BY_ID_SUCCESS").attr(LOAN_ID, id).log();
         return loanMapper.toResponse(loan);
     }
 
     public LoanDetailResponseDTO getLoanDetails(UUID id) {
-        log.info("LOAN_DETAILS_FETCH_ATTEMPT").attr("loanId", id).log();
+        log.info("LOAN_DETAILS_FETCH_ATTEMPT").attr(LOAN_ID, id).log();
         Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
         Borrower borrower = borrowerRepository.findById(loan.getBorrowerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
-        log.info("LOAN_DETAILS_FETCH_SUCCESS").attr("loanId", id).log();
+                .orElseThrow(() -> new ResourceNotFoundException(BORROWER_NOT_FOUND));
+        log.info("LOAN_DETAILS_FETCH_SUCCESS").attr(LOAN_ID, id).log();
         return loanMapper.toDetail(loan, borrower);
     }
 
     public List<LoanResponseDTO> getLoansByBorrower(UUID borrowerId) {
         borrowerRepository.findById(borrowerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(BORROWER_NOT_FOUND));
         List<LoanResponseDTO> result = loanRepository.findByBorrowerId(borrowerId).stream()
-                .map(loanMapper::toResponse).collect(Collectors.toList());
-        log.info("LOANS_BY_BORROWER_SUCCESS").attr("borrowerId", borrowerId).attr("count", result.size()).log();
+                .map(loanMapper::toResponse).toList();
+        log.info("LOANS_BY_BORROWER_SUCCESS").attr("borrowerId", borrowerId).attr(COUNT, result.size()).log();
         return result;
     }
 
     public List<LoanResponseDTO> getLoansByHousehold(UUID householdId) {
         householdRepository.findById(householdId)
-                .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND));
         List<LoanResponseDTO> result = loanRepository.findByHouseholdId(householdId).stream()
-                .map(loanMapper::toResponse).collect(Collectors.toList());
-        log.info("LOANS_BY_HOUSEHOLD_SUCCESS").attr("householdId", householdId).attr("count", result.size()).log();
+                .map(loanMapper::toResponse).toList();
+        log.info("LOANS_BY_HOUSEHOLD_SUCCESS").attr("householdId", householdId).attr(COUNT, result.size()).log();
         return result;
     }
 
     public List<LoanResponseDTO> getLoansByStatus(String status, int page, int limit) {
-        log.info("LOANS_BY_STATUS_ATTEMPT").attr("status", status).attr("page", page).attr("limit", limit).log();
+        log.info("LOANS_BY_STATUS_ATTEMPT").attr(STATUS, status).attr("page", page).attr("limit", limit).log();
         LoanStatus.valueOf(status.toUpperCase());
         List<LoanResponseDTO> result = loanRepository.findByStatus(status.toUpperCase()).stream()
                 .skip((long) (page - 1) * limit)
                 .limit(limit)
                 .map(loanMapper::toResponse)
-                .collect(Collectors.toList());
-        log.info("LOANS_BY_STATUS_SUCCESS").attr("status", status).attr("count", result.size()).log();
+                .toList();
+        log.info("LOANS_BY_STATUS_SUCCESS").attr(STATUS, status).attr(COUNT, result.size()).log();
         return result;
     }
 
     @Transactional
     public void cancelLoan(UUID id, String reason) {
-        log.info("LOAN_CANCEL_ATTEMPT").attr("loanId", id).attr("reason", reason).log();
+        log.info("LOAN_CANCEL_ATTEMPT").attr(LOAN_ID, id).attr("reason", reason).log();
         Loan loan = loanRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
         if (!(loan.getStatus() == LoanStatus.ACTIVE || loan.getStatus() == LoanStatus.DISBURSED)) {
-            log.warn("LOAN_CANCEL_STATUS_INVALID").attr("loanId", id).attr("status", loan.getStatus().name()).log();
+            log.warn("LOAN_CANCEL_STATUS_INVALID").attr(LOAN_ID, id).attr(STATUS, loan.getStatus().name()).log();
             throw new RuntimeException("Only active or disbursed loans can be cancelled");
         }
         if (loan.getTotalPaid().compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("LOAN_CANCEL_HAS_PAYMENTS").attr("loanId", id).attr("totalPaid", loan.getTotalPaid()).log();
+            log.warn("LOAN_CANCEL_HAS_PAYMENTS").attr(LOAN_ID, id).attr("totalPaid", loan.getTotalPaid()).log();
             throw new RuntimeException("Cannot cancel loan with payments already made");
         }
         loanRepository.updateStatus(id, "CANCELLED");
         atroposEventPublisher.publishLoanCancelledEvent(loan, reason);
-        log.info("LOAN_CANCEL_SUCCESS").attr("loanId", id).log();
+        log.info("LOAN_CANCEL_SUCCESS").attr(LOAN_ID, id).log();
     }
 
     private BigDecimal calculateProcessingFee(BigDecimal principalAmount, LoanProduct product) {

@@ -15,6 +15,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.UUID;
 
+import static in.zeta.microloan.platform.constants.LogConstants.*;
+
 @Service
 public class AtroposEventPublisherService {
 
@@ -51,50 +53,50 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("LOAN_ISSUED_EVENT_PUBLISH_FAILED")
-                        .attr("loanId", loan.getId())
-                        .attr("loanNumber", loan.getLoanNumber())
-                        .attr("status", response.getStatus())
+                        .attr(LOAN_ID, loan.getId())
+                        .attr(LOAN_NUMBER, loan.getLoanNumber())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("LOAN_ISSUED_EVENT_PUBLISHED")
-                    .attr("loanId", loan.getId())
-                    .attr("loanNumber", loan.getLoanNumber())
-                    .attr("borrowerId", loan.getBorrowerId())
-                    .attr("principalAmount", loan.getPrincipalAmount())
+                    .attr(LOAN_ID, loan.getId())
+                    .attr(LOAN_NUMBER, loan.getLoanNumber())
+                    .attr(BORROWER_ID, loan.getBorrowerId())
+                    .attr(PRINCIPAL_AMOUNT, loan.getPrincipalAmount())
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("LOAN_ISSUED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("loanId", loan.getId())
+                    .attr(LOAN_ID, loan.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("LOAN_ISSUED_EVENT_PUBLISH_ERROR", e)
-                    .attr("loanId", loan.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(LOAN_ID, loan.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildLoanIssuedEventData(Loan loan) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "LOAN_ISSUED"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("loanId", loan.getId()),
-                Map.entry("loanNumber", loan.getLoanNumber()),
-                Map.entry("applicationId", loan.getApplicationId()),
-                Map.entry("borrowerId", loan.getBorrowerId()),
+                Map.entry(EVENT_TYPE, "LOAN_ISSUED"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(LOAN_ID, loan.getId()),
+                Map.entry(LOAN_NUMBER, loan.getLoanNumber()),
+                Map.entry(APPLICATION_ID, loan.getApplicationId()),
+                Map.entry(BORROWER_ID, loan.getBorrowerId()),
                 Map.entry("householdId", loan.getHouseholdId()),
                 Map.entry("productId", loan.getProductId()),
-                Map.entry("principalAmount", loan.getPrincipalAmount()),
+                Map.entry(PRINCIPAL_AMOUNT, loan.getPrincipalAmount()),
                 Map.entry("interestRate", loan.getInterestRate()),
                 Map.entry("tenureMonths", loan.getTenureMonths()),
                 Map.entry("emiAmount", loan.getEmiAmount()),
                 Map.entry("totalPayable", loan.getTotalPayable()),
-                Map.entry("disbursementDate", loan.getDisbursementDate().toString()),
+                Map.entry(DISBURSEMENT_DATE, loan.getDisbursementDate().toString()),
                 Map.entry("firstDueDate", loan.getFirstDueDate().toString()),
                 Map.entry("disbursementMethod", loan.getDisbursementMethod().name()),
-                Map.entry("status", loan.getStatus().name())
+                Map.entry(STATUS, loan.getStatus().name())
         ));
     }
 
@@ -105,42 +107,42 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("LOAN_REPAYMENT_EVENT_PUBLISH_FAILED")
-                        .attr("repaymentId", repayment.getId())
-                        .attr("receiptNumber", repayment.getReceiptNumber())
-                        .attr("loanId", loan.getId())
-                        .attr("status", response.getStatus())
+                        .attr(REPAYMENT_ID, repayment.getId())
+                        .attr(RECEIPT_NUMBER, repayment.getReceiptNumber())
+                        .attr(LOAN_ID, loan.getId())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("LOAN_REPAYMENT_EVENT_PUBLISHED")
-                    .attr("repaymentId", repayment.getId())
-                    .attr("receiptNumber", repayment.getReceiptNumber())
-                    .attr("loanId", loan.getId())
+                    .attr(REPAYMENT_ID, repayment.getId())
+                    .attr(RECEIPT_NUMBER, repayment.getReceiptNumber())
+                    .attr(LOAN_ID, loan.getId())
                     .attr("amount", repayment.getAmount())
                     .attr("paymentMethod", repayment.getPaymentMethod())
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("LOAN_REPAYMENT_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("repaymentId", repayment.getId())
+                    .attr(REPAYMENT_ID, repayment.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("LOAN_REPAYMENT_EVENT_PUBLISH_ERROR", e)
-                    .attr("repaymentId", repayment.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(REPAYMENT_ID, repayment.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildLoanRepaymentEventData(Repayment repayment, Loan loan) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "LOAN_REPAYMENT"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("repaymentId", repayment.getId()),
-                Map.entry("receiptNumber", repayment.getReceiptNumber()),
-                Map.entry("loanId", repayment.getLoanId()),
-                Map.entry("loanNumber", loan.getLoanNumber()),
-                Map.entry("borrowerId", repayment.getBorrowerId()),
+                Map.entry(EVENT_TYPE, "LOAN_REPAYMENT"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(REPAYMENT_ID, repayment.getId()),
+                Map.entry(RECEIPT_NUMBER, repayment.getReceiptNumber()),
+                Map.entry(LOAN_ID, repayment.getLoanId()),
+                Map.entry(LOAN_NUMBER, loan.getLoanNumber()),
+                Map.entry(BORROWER_ID, repayment.getBorrowerId()),
                 Map.entry("amount", repayment.getAmount()),
                 Map.entry("principalPaid", repayment.getPrincipalPaid()),
                 Map.entry("interestPaid", repayment.getInterestPaid()),
@@ -161,48 +163,48 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("LOAN_OVERDUE_EVENT_PUBLISH_FAILED")
-                        .attr("loanId", loan.getId())
-                        .attr("overdueDays", overdueTracking.getOverdueDays())
-                        .attr("status", response.getStatus())
+                        .attr(LOAN_ID, loan.getId())
+                        .attr(OVERDUE_DAYS, overdueTracking.getOverdueDays())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("LOAN_OVERDUE_EVENT_PUBLISHED")
-                    .attr("loanId", loan.getId())
-                    .attr("overdueDays", overdueTracking.getOverdueDays())
+                    .attr(LOAN_ID, loan.getId())
+                    .attr(OVERDUE_DAYS, overdueTracking.getOverdueDays())
                     .attr("totalDue", overdueTracking.getTotalDue())
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("LOAN_OVERDUE_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("loanId", loan.getId())
+                    .attr(LOAN_ID, loan.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("LOAN_OVERDUE_EVENT_PUBLISH_ERROR", e)
-                    .attr("loanId", loan.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(LOAN_ID, loan.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildLoanOverdueEventData(Loan loan, OverdueTracking overdueTracking) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "LOAN_OVERDUE"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("loanId", loan.getId()),
-                Map.entry("loanNumber", loan.getLoanNumber()),
-                Map.entry("borrowerId", loan.getBorrowerId()),
+                Map.entry(EVENT_TYPE, "LOAN_OVERDUE"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(LOAN_ID, loan.getId()),
+                Map.entry(LOAN_NUMBER, loan.getLoanNumber()),
+                Map.entry(BORROWER_ID, loan.getBorrowerId()),
                 Map.entry("householdId", loan.getHouseholdId()),
                 Map.entry("overdueSince", overdueTracking.getOverdueSince().toString()),
-                Map.entry("overdueDays", overdueTracking.getOverdueDays()),
+                Map.entry(OVERDUE_DAYS, overdueTracking.getOverdueDays()),
                 Map.entry("overduePrincipal", overdueTracking.getOverduePrincipal()),
                 Map.entry("overdueInterest", overdueTracking.getOverdueInterest()),
                 Map.entry("overdueAmount", overdueTracking.getOverdueAmount()),
                 Map.entry("penaltyAmount", overdueTracking.getPenaltyAmount()),
                 Map.entry("totalDue", overdueTracking.getTotalDue()),
                 Map.entry("collectionStage", overdueTracking.getCollectionStage().name()),
-                Map.entry("principalAmount", loan.getPrincipalAmount()),
-                Map.entry("disbursementDate", loan.getDisbursementDate().toString())
+                Map.entry(PRINCIPAL_AMOUNT, loan.getPrincipalAmount()),
+                Map.entry(DISBURSEMENT_DATE, loan.getDisbursementDate().toString())
         ));
     }
 
@@ -213,36 +215,36 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("LOAN_CANCELLED_EVENT_PUBLISH_FAILED")
-                        .attr("loanId", loan.getId())
-                        .attr("status", response.getStatus())
+                        .attr(LOAN_ID, loan.getId())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("LOAN_CANCELLED_EVENT_PUBLISHED")
-                    .attr("loanId", loan.getId())
+                    .attr(LOAN_ID, loan.getId())
                     .attr("reason", reason)
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("LOAN_CANCELLED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("loanId", loan.getId())
+                    .attr(LOAN_ID, loan.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("LOAN_CANCELLED_EVENT_PUBLISH_ERROR", e)
-                    .attr("loanId", loan.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(LOAN_ID, loan.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildLoanCancelledEventData(Loan loan, String reason) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "LOAN_CANCELLED"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("loanId", loan.getId()),
-                Map.entry("loanNumber", loan.getLoanNumber()),
-                Map.entry("borrowerId", loan.getBorrowerId()),
-                Map.entry("principalAmount", loan.getPrincipalAmount()),
+                Map.entry(EVENT_TYPE, "LOAN_CANCELLED"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(LOAN_ID, loan.getId()),
+                Map.entry(LOAN_NUMBER, loan.getLoanNumber()),
+                Map.entry(BORROWER_ID, loan.getBorrowerId()),
+                Map.entry(PRINCIPAL_AMOUNT, loan.getPrincipalAmount()),
                 Map.entry("cancellationReason", reason)
         ));
     }
@@ -254,39 +256,39 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("LOAN_CLOSED_EVENT_PUBLISH_FAILED")
-                        .attr("loanId", loan.getId())
-                        .attr("status", response.getStatus())
+                        .attr(LOAN_ID, loan.getId())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("LOAN_CLOSED_EVENT_PUBLISHED")
-                    .attr("loanId", loan.getId())
+                    .attr(LOAN_ID, loan.getId())
                     .attr("totalPaid", loan.getTotalPaid())
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("LOAN_CLOSED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("loanId", loan.getId())
+                    .attr(LOAN_ID, loan.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("LOAN_CLOSED_EVENT_PUBLISH_ERROR", e)
-                    .attr("loanId", loan.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(LOAN_ID, loan.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildLoanClosedEventData(Loan loan) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "LOAN_CLOSED"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("loanId", loan.getId()),
-                Map.entry("loanNumber", loan.getLoanNumber()),
-                Map.entry("borrowerId", loan.getBorrowerId()),
-                Map.entry("principalAmount", loan.getPrincipalAmount()),
+                Map.entry(EVENT_TYPE, "LOAN_CLOSED"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(LOAN_ID, loan.getId()),
+                Map.entry(LOAN_NUMBER, loan.getLoanNumber()),
+                Map.entry(BORROWER_ID, loan.getBorrowerId()),
+                Map.entry(PRINCIPAL_AMOUNT, loan.getPrincipalAmount()),
                 Map.entry("totalPayable", loan.getTotalPayable()),
                 Map.entry("totalPaid", loan.getTotalPaid()),
-                Map.entry("disbursementDate", loan.getDisbursementDate().toString())
+                Map.entry(DISBURSEMENT_DATE, loan.getDisbursementDate().toString())
         ));
     }
 
@@ -297,34 +299,34 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_FAILED")
-                        .attr("applicationId", application.getId())
-                        .attr("status", response.getStatus())
+                        .attr(APPLICATION_ID, application.getId())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("APPLICATION_APPROVED_EVENT_PUBLISHED")
-                    .attr("applicationId", application.getId())
+                    .attr(APPLICATION_ID, application.getId())
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("applicationId", application.getId())
+                    .attr(APPLICATION_ID, application.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_ERROR", e)
-                    .attr("applicationId", application.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(APPLICATION_ID, application.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildApplicationApprovedEventData(LoanApplication application) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "APPLICATION_APPROVED"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("applicationId", application.getId()),
+                Map.entry(EVENT_TYPE, "APPLICATION_APPROVED"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(APPLICATION_ID, application.getId()),
                 Map.entry("applicationNumber", application.getApplicationNumber()),
-                Map.entry("borrowerId", application.getBorrowerId()),
+                Map.entry(BORROWER_ID, application.getBorrowerId()),
                 Map.entry("productId", application.getProductId()),
                 Map.entry("requestedAmount", application.getRequestedAmount()),
                 Map.entry("approvedAmount", application.getApprovedAmount())
@@ -338,35 +340,35 @@ public class AtroposEventPublisherService {
                     .toCompletableFuture().get();
             if (response.getStatus() == PublishStatus.FAILED) {
                 spectraLogger.error("APPLICATION_REJECTED_EVENT_PUBLISH_FAILED")
-                        .attr("applicationId", application.getId())
-                        .attr("status", response.getStatus())
+                        .attr(APPLICATION_ID, application.getId())
+                        .attr(STATUS, response.getStatus())
                         .log();
                 return;
             }
             spectraLogger.info("APPLICATION_REJECTED_EVENT_PUBLISHED")
-                    .attr("applicationId", application.getId())
+                    .attr(APPLICATION_ID, application.getId())
                     .attr("rejectionReason", rejectionReason)
                     .log();
         } catch (InterruptedException ie) {
             spectraLogger.error("APPLICATION_REJECTED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr("applicationId", application.getId())
+                    .attr(APPLICATION_ID, application.getId())
                     .log();
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             spectraLogger.error("APPLICATION_REJECTED_EVENT_PUBLISH_ERROR", e)
-                    .attr("applicationId", application.getId())
-                    .attr("errorMessage", e.getMessage())
+                    .attr(APPLICATION_ID, application.getId())
+                    .attr(ERROR_MESSAGE, e.getMessage())
                     .log();
         }
     }
 
     private String buildApplicationRejectedEventData(LoanApplication application, String rejectionReason) {
         return gson.toJson(Map.ofEntries(
-                Map.entry("eventType", "APPLICATION_REJECTED"),
-                Map.entry("eventTimestamp", LocalDateTime.now().format(FORMATTER)),
-                Map.entry("applicationId", application.getId()),
+                Map.entry(EVENT_TYPE, "APPLICATION_REJECTED"),
+                Map.entry(EVENT_TIME_STAMP, LocalDateTime.now().format(FORMATTER)),
+                Map.entry(APPLICATION_ID, application.getId()),
                 Map.entry("applicationNumber", application.getApplicationNumber()),
-                Map.entry("borrowerId", application.getBorrowerId()),
+                Map.entry(BORROWER_ID, application.getBorrowerId()),
                 Map.entry("requestedAmount", application.getRequestedAmount()),
                 Map.entry("rejectionReason", rejectionReason)
         ));
