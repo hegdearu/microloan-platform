@@ -19,7 +19,9 @@ import java.time.Period;
 import java.util.UUID;
 
 import static in.zeta.microloan.platform.constants.LogConstants.BORROWER_ID;
+import static in.zeta.microloan.platform.constants.LogConstants.HOUSEHOLD_ID;
 import static in.zeta.microloan.platform.exception.Error.HOUSEHOLD_NOT_FOUND;
+import static in.zeta.microloan.platform.exception.Error.HOUSEHOLD_NOT_VERIFIED;
 
 @Component
 public class BorrowerValidator {
@@ -56,12 +58,35 @@ public class BorrowerValidator {
         });
 
         if (dto.getHouseholdId() != null) {
-            householdRepository.findById(dto.getHouseholdId()).orElseThrow(() -> {
+            var householdOpt = householdRepository.findById(dto.getHouseholdId());
+            if (householdOpt.isEmpty()) {
                 spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
-                        .attr("householdId", dto.getHouseholdId())
+                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
                         .log();
-                return new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND);
-            });
+                throw new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND);
+            }
+
+            var household = householdOpt.get();
+
+            if (!Boolean.TRUE.equals(household.getIsVerified())) {
+                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_VERIFIED")
+                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
+                        .log();
+                throw new ResourceNotFoundException(HOUSEHOLD_NOT_VERIFIED);
+            }
+
+            // Validate household member count
+            int currentMemberCount = borrowerRepository.findByHouseholdId(dto.getHouseholdId()).size();
+            if (currentMemberCount >= household.getTotalMembers()) {
+                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_FULL")
+                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
+                        .attr("currentMembers", currentMemberCount)
+                        .attr("maxMembers", household.getTotalMembers())
+                        .log();
+                throw new BusinessRuleException(
+                        "Cannot add more members. Household already has " + currentMemberCount +
+                                " member(s), which matches the maximum allowed (" + household.getTotalMembers() + ")");
+            }
         }
 
         if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {

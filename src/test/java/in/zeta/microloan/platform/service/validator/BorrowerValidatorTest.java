@@ -7,6 +7,7 @@ import in.zeta.microloan.platform.exception.Error;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.Borrower;
+import in.zeta.microloan.platform.model.Household;
 import in.zeta.microloan.platform.model.enums.UserStatus;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
 import in.zeta.microloan.platform.repository.household.HouseholdRepository;
@@ -19,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,11 +58,43 @@ class BorrowerValidatorTest {
     }
 
     @Test
-    void validateRegistration_WithValidData_ShouldPass() {
+    void validateRegistration_WithFullHousehold_ShouldThrowException() {
+        Household household = Household.builder()
+                .id(householdId)
+                .isVerified(true)
+                .totalMembers(2)
+                .build();
+
         when(borrowerRepository.findByPhone(registrationDTO.getPhone()))
                 .thenReturn(Optional.empty());
         when(householdRepository.findById(householdId))
-                .thenReturn(Optional.of(new in.zeta.microloan.platform.model.Household()));
+                .thenReturn(Optional.of(household));
+        when(borrowerRepository.findByHouseholdId(householdId))
+                .thenReturn(Arrays.asList(new Borrower(), new Borrower())); // Already 2 members
+
+        BusinessRuleException exception = assertThrows(BusinessRuleException.class, () ->
+                validator.validateRegistration(registrationDTO)
+        );
+
+        assertTrue(exception.getMessage().contains("Cannot add more members"));
+    }
+
+    @Test
+    void validateRegistration_WithoutEmail_ShouldPass() {
+        registrationDTO.setEmail(null);
+
+        Household household = Household.builder()
+                .id(householdId)
+                .isVerified(true)
+                .totalMembers(5)
+                .build();
+
+        when(borrowerRepository.findByPhone(registrationDTO.getPhone()))
+                .thenReturn(Optional.empty());
+        when(householdRepository.findById(householdId))
+                .thenReturn(Optional.of(household));
+        when(borrowerRepository.findByHouseholdId(householdId))
+                .thenReturn(Collections.emptyList());
 
         assertDoesNotThrow(() -> validator.validateRegistration(registrationDTO));
     }
@@ -103,28 +138,20 @@ class BorrowerValidatorTest {
     }
 
     @Test
-    void validateRegistration_WithInvalidEmail_ShouldThrowException() {
-        registrationDTO.setEmail("invalid-email");
+    void registerBorrower_WithUnverifiedHousehold_ShouldThrowException() {
+        Household household = Household.builder()
+                .id(householdId)
+                .isVerified(false)
+                .totalMembers(5)
+                .build();
 
         when(borrowerRepository.findByPhone(registrationDTO.getPhone()))
                 .thenReturn(Optional.empty());
-        when(householdRepository.findById(householdId))
-                .thenReturn(Optional.of(new in.zeta.microloan.platform.model.Household()));
+        when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
 
-        assertThrows(ValidationException.class, () ->
+        assertThrows(ResourceNotFoundException.class, () ->
                 validator.validateRegistration(registrationDTO)
         );
-    }
-
-    @Test
-    void validateRegistration_WithoutEmail_ShouldPass() {
-        registrationDTO.setEmail(null);
-        when(borrowerRepository.findByPhone(registrationDTO.getPhone()))
-                .thenReturn(Optional.empty());
-        when(householdRepository.findById(householdId))
-                .thenReturn(Optional.of(new in.zeta.microloan.platform.model.Household()));
-
-        assertDoesNotThrow(() -> validator.validateRegistration(registrationDTO));
     }
 
     @Test

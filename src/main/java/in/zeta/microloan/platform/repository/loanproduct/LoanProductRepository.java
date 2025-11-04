@@ -61,47 +61,38 @@ public class LoanProductRepository {
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
-    public UUID create(LoanProduct product) {
+    public LoanProduct create(LoanProduct product) {
         String sql = "INSERT INTO public.loan_products (name, description, min_amount, max_amount, " +
                 "interest_rate, processing_fee_type, processing_fee_value, tenure_months, " +
                 "grace_period_days, late_fee_percent, max_late_fee_percent, " +
-                "prepayment_charges_type, prepayment_charges_value, status, version, " +
-                "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "prepayment_charges_type, prepayment_charges_value, status, version" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *";
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, product.getName());
-            ps.setString(2, product.getDescription());
-            ps.setBigDecimal(3, product.getMinAmount());
-            ps.setBigDecimal(4, product.getMaxAmount());
-            ps.setBigDecimal(5, product.getInterestRate());
-            ps.setString(6, product.getProcessingFeeType());
-            ps.setBigDecimal(7, product.getProcessingFeeValue());
-            ps.setInt(8, product.getTenureMonths());
-            ps.setInt(9, product.getGracePeriodDays());
-            ps.setBigDecimal(10, product.getLateFeePercent());
-            ps.setBigDecimal(11, product.getMaxLateFeePercent());
-            ps.setString(12, product.getPrepaymentChargesType());
-            ps.setBigDecimal(13, product.getPrepaymentChargesValue());
-            ps.setString(14, product.getStatus().name());
-            ps.setInt(15, 1);
-            ps.setTimestamp(16, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            ps.setTimestamp(17, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-            return ps;
-        }, keyHolder);
-
-        Object idObj = keyHolder.getKeys().get("id");
-        return UUID.fromString(idObj.toString());
-
+        return jdbcTemplate.queryForObject(sql, rowMapper,
+                product.getName(),
+                product.getDescription(),
+                product.getMinAmount(),
+                product.getMaxAmount(),
+                product.getInterestRate(),
+                product.getProcessingFeeType(),
+                product.getProcessingFeeValue(),
+                product.getTenureMonths(),
+                product.getGracePeriodDays(),
+                product.getLateFeePercent(),
+                product.getMaxLateFeePercent(),
+                product.getPrepaymentChargesType(),
+                product.getPrepaymentChargesValue(),
+                product.getStatus().name(),
+                1
+        );
     }
 
     public void update(LoanProduct product) {
         String sql = "UPDATE public.loan_products SET name = ?, description = ?, min_amount = ?, " +
                 "max_amount = ?, interest_rate = ?, processing_fee_type = ?, processing_fee_value = ?, " +
                 "tenure_months = ?, grace_period_days = ?, late_fee_percent = ?, max_late_fee_percent = ?, " +
-                "prepayment_charges_type = ?, prepayment_charges_value = ?, status = ? " +
+                "prepayment_charges_type = ?, prepayment_charges_value = ?, status = ?, " +
+                "version = version + 1, updated_at = ? " +
                 "WHERE id = ?";
 
         jdbcTemplate.update(sql,
@@ -119,6 +110,7 @@ public class LoanProductRepository {
                 product.getPrepaymentChargesType(),
                 product.getPrepaymentChargesValue(),
                 product.getStatus().name(),
+                java.time.LocalDateTime.now(),
                 product.getId()
         );
     }

@@ -103,13 +103,7 @@ class BorrowerServiceTest {
 
     @Test
     void registerBorrower_WithValidData_ShouldSucceed() {
-        Household household = Household.builder()
-                .id(householdId)
-                .isVerified(true)
-                .build();
-
         doNothing().when(validator).validateRegistration(registrationDTO);
-        when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
         when(borrowerRepository.create(any(Borrower.class))).thenReturn(borrower);
         when(mapper.toResponse(borrower)).thenReturn(responseDTO);
 
@@ -133,21 +127,6 @@ class BorrowerServiceTest {
 
         assertNotNull(result);
         verify(validator).validateRegistration(registrationDTO);
-    }
-
-    @Test
-    void registerBorrower_WithUnverifiedHousehold_ShouldThrowException() {
-        Household household = Household.builder()
-                .id(householdId)
-                .isVerified(false)
-                .build();
-
-        doNothing().when(validator).validateRegistration(registrationDTO);
-        when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
-
-        assertThrows(ResourceNotFoundException.class, () ->
-                borrowerService.registerBorrower(registrationDTO)
-        );
     }
 
     @Test
