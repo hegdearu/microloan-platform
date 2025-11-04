@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class OverdueTrackingRepository {
@@ -20,8 +21,8 @@ public class OverdueTrackingRepository {
     }
 
     private final RowMapper<OverdueTracking> rowMapper = (rs, rowNum) -> OverdueTracking.builder()
-            .id(rs.getLong("id"))
-            .loanId(rs.getLong("loan_id"))
+            .id(rs.getObject("id", UUID.class))
+            .loanId(rs.getObject("loan_id", UUID.class))
             .overdueSince(rs.getDate("overdue_since").toLocalDate())
             .overdueDays(rs.getInt("overdue_days"))
             .overduePrincipal(rs.getBigDecimal("overdue_principal"))
@@ -76,7 +77,7 @@ public class OverdueTrackingRepository {
         );
     }
 
-    public Optional<OverdueTracking> findByLoanId(Long loanId) {
+    public Optional<OverdueTracking> findByLoanId(UUID loanId) {
         String sql = "SELECT * FROM public.overdue_tracking WHERE loan_id = ?";
         List<OverdueTracking> results = jdbcTemplate.query(sql, rowMapper, loanId);
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
@@ -87,7 +88,7 @@ public class OverdueTrackingRepository {
         return jdbcTemplate.query(sql, rowMapper);
     }
 
-    public void deleteByLoanId(Long loanId) {
+    public void deleteByLoanId(UUID loanId) {
         String sql = "DELETE FROM public.overdue_tracking WHERE loan_id = ?";
         jdbcTemplate.update(sql, loanId);
     }

@@ -4,65 +4,72 @@ import in.zeta.microloan.platform.dto.request.BorrowerRegistrationRequestDTO;
 import in.zeta.microloan.platform.dto.request.BorrowerUpdateRequestDTO;
 import in.zeta.microloan.platform.dto.response.BorrowerCreditSummaryResponseDTO;
 import in.zeta.microloan.platform.dto.response.BorrowerResponseDTO;
+import in.zeta.microloan.platform.exception.Error;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
-import in.zeta.microloan.platform.exception.ValidationException;
-import in.zeta.microloan.platform.exception.BusinessRuleException;
 import in.zeta.microloan.platform.model.Borrower;
 import in.zeta.microloan.platform.model.enums.UserStatus;
 import in.zeta.microloan.platform.repository.borrower.BorrowerRepository;
 import in.zeta.microloan.platform.repository.household.HouseholdRepository;
-import in.zeta.microloan.platform.repository.loan.LoanRepository;
-import org.springframework.beans.factory.annotation.Value;
+import in.zeta.microloan.platform.service.mappers.BorrowerMapper;
+import in.zeta.microloan.platform.service.validator.BorrowerValidator;
+import in.zeta.spectra.capture.SpectraLogger;
+import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.Period;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static in.zeta.microloan.platform.constants.LogConstants.BORROWER_ID;
+import static in.zeta.microloan.platform.constants.LogConstants.HOUSEHOLD_ID;
+import static in.zeta.microloan.platform.exception.Error.BORROWER_NOT_FOUND_WITH_ID;;
+import static in.zeta.microloan.platform.exception.Error.HOUSEHOLD_NOT_FOUND;
+import static in.zeta.microloan.platform.exception.Error.HOUSEHOLD_NOT_VERIFIED;
 
 @Service
 public class BorrowerService {
 
+    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(BorrowerService.class);
+
     private final BorrowerRepository borrowerRepository;
     private final HouseholdRepository householdRepository;
-    private final LoanRepository loanRepository;
-
-    @Value("${app.min-age-requirement:18}")
-    private int minAgeRequirement;
+    private final BorrowerValidator validator;
+    private final BorrowerMapper mapper;
 
     public BorrowerService(BorrowerRepository borrowerRepository,
                            HouseholdRepository householdRepository,
-                           LoanRepository loanRepository) {
+                           BorrowerValidator validator,
+                           BorrowerMapper mapper) {
         this.borrowerRepository = borrowerRepository;
         this.householdRepository = householdRepository;
-        this.loanRepository = loanRepository;
+        this.validator = validator;
+        this.mapper = mapper;
     }
 
     @Transactional
     public BorrowerResponseDTO registerBorrower(BorrowerRegistrationRequestDTO dto) {
-        // Validate age
-        int age = Period.between(dto.getDob(), LocalDate.now()).getYears();
-        if (age < minAgeRequirement) {
-            throw new ValidationException("Borrower must be at least " + minAgeRequirement + " years old");
-        }
+        spectraLogger.info("BORROWER_REGISTER_ATTEMPT")
+                .attr("phone", dto.getPhone())
+                .attr("name", dto.getName())
+                .log();
 
-        // Check if phone already exists
-        if (borrowerRepository.findByPhone(dto.getPhone()).isPresent()) {
-            throw new ValidationException("Phone number already registered");
-        }
+        validator.validateRegistration(dto);
 
-        // Validate household if provided
         if (dto.getHouseholdId() != null) {
-            householdRepository.findById(dto.getHouseholdId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
-        }
-
-        // Validate email format if provided
-        if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
-            if (!isValidEmail(dto.getEmail())) {
-                throw new ValidationException("Invalid email format");
+            var householdOpt = householdRepository.findById(dto.getHouseholdId());
+            if (householdOpt.isEmpty()) {
+                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
+                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
+                        .log();
+                throw new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND);
+            }
+            if (!Boolean.TRUE.equals(householdOpt.get().getIsVerified())) {
+                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_VERIFIED")
+                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
+                        .log();
+                throw new ResourceNotFoundException(HOUSEHOLD_NOT_VERIFIED);
             }
         }
 
@@ -87,149 +94,185 @@ public class BorrowerService {
 
         Borrower savedBorrower = borrowerRepository.create(borrower);
 
-        return mapToResponseDTO(savedBorrower);
+        spectraLogger.info("BORROWER_REGISTER_SUCCESS")
+                .attr(BORROWER_ID, savedBorrower.getId())
+                .attr("phone", savedBorrower.getPhone())
+                .log();
+
+        return mapper.toResponse(savedBorrower);
     }
 
-    public BorrowerResponseDTO getBorrowerById(Long id) {
+    public BorrowerResponseDTO getBorrowerById(UUID id) {
+        spectraLogger.info("BORROWER_FETCH_BY_ID_ATTEMPT").attr(BORROWER_ID, id).log();
         Borrower borrower = borrowerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found with ID: " + id));
-        return mapToResponseDTO(borrower);
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_FETCH_BY_ID_NOT_FOUND").attr(BORROWER_ID, id).log();
+                    return new ResourceNotFoundException(BORROWER_NOT_FOUND_WITH_ID);
+                });
+        spectraLogger.info("BORROWER_FETCH_BY_ID_SUCCESS").attr(BORROWER_ID, borrower.getId()).log();
+        return mapper.toResponse(borrower);
     }
 
     public BorrowerResponseDTO getBorrowerByPhone(String phone) {
+        spectraLogger.info("BORROWER_FETCH_BY_PHONE_ATTEMPT").attr("phone", phone).log();
         Borrower borrower = borrowerRepository.findByPhone(phone)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found with phone: " + phone));
-        return mapToResponseDTO(borrower);
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_FETCH_BY_PHONE_NOT_FOUND").attr("phone", phone).log();
+                    return new ResourceNotFoundException(Error.BORROWER_NOT_FOUND_WITH_PHONE);
+                });
+        spectraLogger.info("BORROWER_FETCH_BY_PHONE_SUCCESS").attr(BORROWER_ID, borrower.getId()).log();
+        return mapper.toResponse(borrower);
     }
 
-    public List<BorrowerResponseDTO> getBorrowersByHousehold(Long householdId) {
-        // Validate household exists
+    public List<BorrowerResponseDTO> getBorrowersByHousehold(UUID householdId) {
+        spectraLogger.info("BORROWERS_FETCH_BY_HOUSEHOLD_ATTEMPT").attr(HOUSEHOLD_ID, householdId).log();
         householdRepository.findById(householdId)
-                .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWERS_FETCH_BY_HOUSEHOLD_NOT_FOUND").attr(HOUSEHOLD_ID, householdId).log();
+                    return new ResourceNotFoundException(Error.HOUSEHOLD_NOT_FOUND);
+                });
 
         List<Borrower> borrowers = borrowerRepository.findByHouseholdId(householdId);
-        return borrowers.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        List<BorrowerResponseDTO> result = borrowers.stream()
+                .map(mapper::toResponse)
+                .toList();
+
+        spectraLogger.info("BORROWERS_FETCH_BY_HOUSEHOLD_SUCCESS")
+                .attr(HOUSEHOLD_ID, householdId)
+                .attr("count", result.size())
+                .log();
+        return result;
     }
 
     public List<BorrowerResponseDTO> getAllBorrowers(String status, int page, int limit) {
-        List<Borrower> borrowers;
+        spectraLogger.info("BORROWERS_LIST_REQUEST")
+                .attr("statusFilter", status)
+                .attr("page", page)
+                .attr("limit", limit)
+                .log();
 
+        List<Borrower> borrowers;
         if (status != null && !status.isEmpty()) {
             try {
                 UserStatus userStatus = UserStatus.valueOf(status.toUpperCase());
                 borrowers = borrowerRepository.findByStatus(userStatus);
             } catch (IllegalArgumentException e) {
-                throw new ValidationException("Invalid status: " + status);
+                spectraLogger.warn("BORROWERS_LIST_INVALID_STATUS").attr("status", status).log();
+                throw new ResourceNotFoundException(Error.INVALID_STATUS);
             }
         } else {
             borrowers = borrowerRepository.findAll();
         }
 
-        return borrowers.stream()
-                .skip((page - 1) * limit)
+        List<BorrowerResponseDTO> result = borrowers.stream()
+                .skip((long) (page - 1) * limit)
                 .limit(limit)
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+                .map(mapper::toResponse)
+                .toList();
+
+        spectraLogger.info("BORROWERS_LIST_RESPONSE")
+                .attr("returnedCount", result.size())
+                .log();
+        return result;
     }
 
     @Transactional
-    public BorrowerResponseDTO updateBorrower(Long id, BorrowerUpdateRequestDTO dto) {
-        Borrower borrower = borrowerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+    public BorrowerResponseDTO updateBorrower(UUID id, BorrowerUpdateRequestDTO dto) {
+        spectraLogger.info("BORROWER_UPDATE_ATTEMPT").attr(BORROWER_ID, id).log();
 
-        // Update only provided fields
-        if (dto.getName() != null) {
-            borrower.setName(dto.getName());
-        }
-        if (dto.getEmail() != null) {
-            if (!isValidEmail(dto.getEmail())) {
-                throw new ValidationException("Invalid email format");
-            }
-            borrower.setEmail(dto.getEmail());
-        }
-        if (dto.getAddress() != null) {
-            borrower.setAddress(dto.getAddress());
-        }
-        if (dto.getOccupation() != null) {
-            borrower.setOccupation(dto.getOccupation());
-        }
-        if (dto.getIndividualAnnualIncome() != null) {
+        validator.validateUpdate(dto);
+
+        Borrower borrower = borrowerRepository.findById(id)
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_UPDATE_NOT_FOUND").attr(BORROWER_ID, id).log();
+                    return new ResourceNotFoundException(in.zeta.microloan.platform.exception.Error.BORROWER_NOT_FOUND);
+                });
+
+        if (dto.getName() != null) borrower.setName(dto.getName());
+        if (dto.getEmail() != null) borrower.setEmail(dto.getEmail());
+        if (dto.getAddress() != null) borrower.setAddress(dto.getAddress());
+        if (dto.getOccupation() != null) borrower.setOccupation(dto.getOccupation());
+        if (dto.getIndividualAnnualIncome() != null)
             borrower.setIndividualAnnualIncome(dto.getIndividualAnnualIncome());
-        }
-        if (dto.getEmploymentDetails() != null) {
+        if (dto.getEmploymentDetails() != null)
             borrower.setEmploymentDetails(dto.getEmploymentDetails());
-        }
-        if (dto.getIncomeDetails() != null) {
+        if (dto.getIncomeDetails() != null)
             borrower.setIncomeDetails(dto.getIncomeDetails());
-        }
 
         borrowerRepository.update(borrower);
 
-        return mapToResponseDTO(borrower);
+        spectraLogger.info("BORROWER_UPDATE_SUCCESS").attr(BORROWER_ID, id).log();
+        return mapper.toResponse(borrower);
     }
 
     @Transactional
-    public BorrowerResponseDTO verifyBorrower(Long id) {
-        Borrower borrower = borrowerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+    public BorrowerResponseDTO verifyBorrower(UUID id) {
+        spectraLogger.info("BORROWER_VERIFY_ATTEMPT").attr(BORROWER_ID, id).log();
 
-        if (borrower.getIsVerified()) {
-            throw new BusinessRuleException("Borrower is already verified");
-        }
+        Borrower borrower = borrowerRepository.findById(id)
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_VERIFY_NOT_FOUND").attr(BORROWER_ID, id).log();
+                    return new ResourceNotFoundException(in.zeta.microloan.platform.exception.Error.BORROWER_NOT_FOUND);
+                });
+
+        validator.validateVerification(borrower);
 
         borrower.setIsVerified(true);
         borrowerRepository.update(borrower);
 
-        return mapToResponseDTO(borrower);
+        spectraLogger.info("BORROWER_VERIFY_SUCCESS").attr(BORROWER_ID, id).log();
+        return mapper.toResponse(borrower);
     }
 
     @Transactional
-    public BorrowerResponseDTO updateBorrowerStatus(Long id, String statusStr) {
+    public BorrowerResponseDTO updateBorrowerStatus(UUID id, String statusStr) {
+        spectraLogger.info("BORROWER_STATUS_UPDATE_ATTEMPT")
+                .attr(BORROWER_ID, id)
+                .attr("newStatus", statusStr)
+                .log();
+
         Borrower borrower = borrowerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_STATUS_UPDATE_NOT_FOUND").attr(BORROWER_ID, id).log();
+                    return new ResourceNotFoundException(Error.BORROWER_NOT_FOUND);
+                });
 
-        UserStatus status;
-        try {
-            status = UserStatus.valueOf(statusStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new ValidationException("Invalid status: " + statusStr);
-        }
-
-        // Check if borrower has active loans before suspending/deactivating
-        if (status == UserStatus.SUSPENDED || status == UserStatus.INACTIVE) {
-            int activeLoans = borrowerRepository.countActiveLoansByBorrower(id);
-            if (activeLoans > 0) {
-                throw new BusinessRuleException(
-                        "Cannot change status. Borrower has " + activeLoans + " active loan(s)");
-            }
-        }
+        UserStatus status = validator.validateStatusChange(id, statusStr);
 
         borrower.setStatus(status);
         borrowerRepository.update(borrower);
 
-        return mapToResponseDTO(borrower);
+        spectraLogger.info("BORROWER_STATUS_UPDATE_SUCCESS")
+                .attr(BORROWER_ID, id)
+                .attr("newStatus", status.name())
+                .log();
+        return mapper.toResponse(borrower);
     }
 
     @Transactional
-    public void deleteBorrower(Long id) {
-        Borrower borrower = borrowerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+    public void deleteBorrower(UUID id) {
+        spectraLogger.info("BORROWER_DELETE_ATTEMPT").attr(BORROWER_ID, id).log();
 
-        // Check if borrower has any loans
-        int activeLoans = borrowerRepository.countActiveLoansByBorrower(id);
-        if (activeLoans > 0) {
-            throw new BusinessRuleException(
-                    "Cannot delete borrower with active loans. Please close all loans first.");
-        }
+        borrowerRepository.findById(id)
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_DELETE_NOT_FOUND").attr(BORROWER_ID, id).log();
+                    return new ResourceNotFoundException(Error.BORROWER_NOT_FOUND);
+                });
+
+        validator.validateDeletion(id);
 
         borrowerRepository.delete(id);
+        spectraLogger.info("BORROWER_DELETE_SUCCESS").attr(BORROWER_ID, id).log();
     }
 
-    public BorrowerCreditSummaryResponseDTO getBorrowerCreditSummary(Long borrowerId) {
+    public BorrowerCreditSummaryResponseDTO getBorrowerCreditSummary(UUID borrowerId) {
+        spectraLogger.info("BORROWER_CREDIT_SUMMARY_REQUEST").attr(BORROWER_ID, borrowerId).log();
+
         Borrower borrower = borrowerRepository.findById(borrowerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Borrower not found"));
+                .orElseThrow(() -> {
+                    spectraLogger.warn("BORROWER_CREDIT_SUMMARY_NOT_FOUND").attr(BORROWER_ID, borrowerId).log();
+                    return new ResourceNotFoundException(Error.BORROWER_NOT_FOUND);
+                });
 
         int totalLoans = borrowerRepository.countAllLoansByBorrower(borrowerId);
         int activeLoans = borrowerRepository.countActiveLoansByBorrower(borrowerId);
@@ -238,46 +281,14 @@ public class BorrowerService {
         BigDecimal totalOutstanding = borrowerRepository.getTotalOutstandingAmount(borrowerId);
         BigDecimal totalPaid = borrowerRepository.getTotalPaidAmount(borrowerId);
 
-        return BorrowerCreditSummaryResponseDTO.builder()
-                .borrowerId(borrowerId)
-                .borrowerName(borrower.getName())
-                .totalLoans(totalLoans)
-                .activeLoans(activeLoans)
-                .closedLoans(closedLoans)
-                .totalDisbursed(totalDisbursed != null ? totalDisbursed : BigDecimal.ZERO)
-                .totalOutstanding(totalOutstanding != null ? totalOutstanding : BigDecimal.ZERO)
-                .totalPaid(totalPaid != null ? totalPaid : BigDecimal.ZERO)
-                .creditScore(borrower.getCreditScore())
-                .isVerified(borrower.getIsVerified())
-                .status(borrower.getStatus().name())
-                .build();
-    }
+        spectraLogger.info("BORROWER_CREDIT_SUMMARY_GENERATED")
+                .attr(BORROWER_ID, borrowerId)
+                .attr("totalLoans", totalLoans)
+                .attr("activeLoans", activeLoans)
+                .attr("closedLoans", closedLoans)
+                .log();
 
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-        return email.matches(emailRegex);
-    }
-
-    private BorrowerResponseDTO mapToResponseDTO(Borrower borrower) {
-        return BorrowerResponseDTO.builder()
-                .id(borrower.getId())
-                .name(borrower.getName())
-                .phone(borrower.getPhone())
-                .email(borrower.getEmail())
-                .dob(borrower.getDob())
-                .householdId(borrower.getHouseholdId())
-                .relationshipToHead(borrower.getRelationshipToHead())
-                .isHouseholdHead(borrower.getIsHouseholdHead())
-                .individualAnnualIncome(borrower.getIndividualAnnualIncome())
-                .occupation(borrower.getOccupation())
-                .address(borrower.getAddress())
-                .idProofType(borrower.getIdProofType())
-                .idProofNumber(borrower.getIdProofNumber())
-                .creditScore(borrower.getCreditScore())
-                .status(borrower.getStatus())
-                .isVerified(borrower.getIsVerified())
-                .createdAt(borrower.getCreatedAt())
-                .updatedAt(borrower.getUpdatedAt())
-                .build();
+        return mapper.toCreditSummary(borrower, totalLoans, activeLoans, closedLoans,
+                totalDisbursed, totalOutstanding, totalPaid);
     }
 }

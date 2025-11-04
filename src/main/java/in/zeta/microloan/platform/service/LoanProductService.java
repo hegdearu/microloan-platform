@@ -3,28 +3,47 @@ package in.zeta.microloan.platform.service;
 import in.zeta.microloan.platform.dto.request.LoanProductRequestDTO;
 import in.zeta.microloan.platform.dto.response.LoanProductResponseDTO;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
-import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.LoanProduct;
 import in.zeta.microloan.platform.model.enums.LoanProductStatus;
 import in.zeta.microloan.platform.repository.loanproduct.LoanProductRepository;
+import in.zeta.microloan.platform.service.mappers.LoanProductMapper;
+import in.zeta.microloan.platform.service.validator.LoanProductValidator;
+import in.zeta.spectra.capture.SpectraLogger;
+import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static in.zeta.microloan.platform.exception.Error.LOAN_PRODUCT_NOT_FOUND;
 
 @Service
 public class LoanProductService {
 
+    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(LoanProductService.class);
     private final LoanProductRepository productRepository;
+    private final LoanProductValidator validator;
+    private final LoanProductMapper mapper;
 
-    public LoanProductService(LoanProductRepository productRepository) {
+    public LoanProductService(LoanProductRepository productRepository,
+                              LoanProductValidator validator,
+                              LoanProductMapper mapper) {
         this.productRepository = productRepository;
+        this.validator = validator;
+        this.mapper = mapper;
     }
 
     @Transactional
     public LoanProductResponseDTO createProduct(LoanProductRequestDTO dto) {
-        validateProductData(dto);
+        spectraLogger.info("LOAN_PRODUCT_CREATE_ATTEMPT")
+                .attr("name", dto.getName())
+                .attr("minAmount", dto.getMinAmount())
+                .attr("maxAmount", dto.getMaxAmount())
+                .log();
+
+        validator.validate(dto);
 
         LoanProduct product = LoanProduct.builder()
                 .name(dto.getName())
@@ -43,39 +62,36 @@ public class LoanProductService {
                 .status(LoanProductStatus.ACTIVE)
                 .build();
 
-        Long productId = productRepository.create(product);
-        product.setId(productId);
+        UUID id = productRepository.create(product);
+        product.setId(id);
 
-        return mapToResponseDTO(product);
+        spectraLogger.info("LOAN_PRODUCT_CREATE_SUCCESS")
+                .attr("productId", id)
+                .log();
+        return mapper.toResponse(product);
     }
 
     public List<LoanProductResponseDTO> getAllActiveProducts() {
-        List<LoanProduct> products = productRepository.findAllActive();
-        return products.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return productRepository.findAllActive()
+                .stream().map(mapper::toResponse).collect(Collectors.toList());
     }
 
     public List<LoanProductResponseDTO> getAllProducts() {
-        List<LoanProduct> products = productRepository.findAll();
-        return products.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+        return productRepository.findAll()
+                .stream().map(mapper::toResponse).collect(Collectors.toList());
     }
 
-    public LoanProductResponseDTO getProductById(Long id) {
+    public LoanProductResponseDTO getProductById(UUID id) {
         LoanProduct product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
-        return mapToResponseDTO(product);
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
+        return mapper.toResponse(product);
     }
 
     @Transactional
-    public LoanProductResponseDTO updateProduct(Long id, LoanProductRequestDTO dto) {
+    public LoanProductResponseDTO updateProduct(UUID id, LoanProductRequestDTO dto) {
         LoanProduct product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
-
-        validateProductData(dto);
-
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
+        validator.validate(dto);
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
         product.setMinAmount(dto.getMinAmount());
@@ -89,53 +105,14 @@ public class LoanProductService {
         product.setMaxLateFeePercent(dto.getMaxLateFeePercent());
         product.setPrepaymentChargesType(dto.getPrepaymentChargesType());
         product.setPrepaymentChargesValue(dto.getPrepaymentChargesValue());
-
         productRepository.update(product);
-
-        return mapToResponseDTO(product);
+        return mapper.toResponse(product);
     }
 
     @Transactional
-    public void deleteProduct(Long id) {
-        LoanProduct product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
-
+    public void deleteProduct(UUID id) {
+        productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(LOAN_PRODUCT_NOT_FOUND));
         productRepository.delete(id);
-
-    }
-
-    private void validateProductData(LoanProductRequestDTO dto) {
-        if (dto.getMinAmount().compareTo(dto.getMaxAmount()) > 0) {
-            throw new ValidationException("Minimum amount cannot be greater than maximum amount");
-        }
-
-        if (dto.getInterestRate().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new ValidationException("Interest rate must be positive");
-        }
-
-        if (dto.getTenureMonths() <= 0) {
-            throw new ValidationException("Tenure must be positive");
-        }
-    }
-
-    private LoanProductResponseDTO mapToResponseDTO(LoanProduct product) {
-        return LoanProductResponseDTO.builder()
-                .id(product.getId())
-                .name(product.getName())
-                .description(product.getDescription())
-                .minAmount(product.getMinAmount())
-                .maxAmount(product.getMaxAmount())
-                .interestRate(product.getInterestRate())
-                .processingFeeType(product.getProcessingFeeType())
-                .processingFeeValue(product.getProcessingFeeValue())
-                .tenureMonths(product.getTenureMonths())
-                .gracePeriodDays(product.getGracePeriodDays())
-                .lateFeePercent(product.getLateFeePercent())
-                .maxLateFeePercent(product.getMaxLateFeePercent())
-                .prepaymentChargesType(product.getPrepaymentChargesType())
-                .prepaymentChargesValue(product.getPrepaymentChargesValue())
-                .status(product.getStatus())
-                .createdAt(product.getCreatedAt())
-                .build();
     }
 }

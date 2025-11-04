@@ -9,17 +9,18 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Repayment {
-    private Long id;
+    private UUID id;
     private String receiptNumber;
-    private Long loanId;
-    private Long borrowerId;
-    private Long householdId;
+    private UUID loanId;
+    private UUID borrowerId;
+    private UUID householdId;
     private BigDecimal amount;
     private BigDecimal principalPaid;
     private BigDecimal interestPaid;

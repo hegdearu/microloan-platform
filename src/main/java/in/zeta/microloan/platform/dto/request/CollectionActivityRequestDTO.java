@@ -3,15 +3,18 @@ package in.zeta.microloan.platform.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
+@Builder
 public class CollectionActivityRequestDTO {
 
     @NotNull(message = "Loan ID is required")
-    private Long loanId;
+    private UUID loanId;
 
     @NotBlank(message = "Activity type is required")
     private String activityType;
@@ -28,7 +31,7 @@ public class CollectionActivityRequestDTO {
     private String notes;
 
     @NotNull(message = "Assigned agent is required")
-    private Long assignedTo;
+    private UUID assignedTo;
 
     private LocalDate nextFollowUpDate;
 }

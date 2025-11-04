@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -33,10 +34,10 @@ public class RepaymentProvider implements ObjectProvider<RepaymentResponseDTO> {
     public CompletionStage<Optional<RepaymentResponseDTO>> getObject(JID jid, Realm realm, Long tenantID) {
         return CompletableFuture.supplyAsync(() -> {
             RepaymentResponseDTO repaymentResponse = null;
-            Long loanId = null;
+            UUID loanId = null;
 
             try {
-                loanId = Long.getLong(jid.getNodeId());
+                loanId = UUID.fromString(jid.getNodeId());
 
                 logger.info("Entry: Fetching repayment object")
                         .attr(LOAN_ID, loanId)

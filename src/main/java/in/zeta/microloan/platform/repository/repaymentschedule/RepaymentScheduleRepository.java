@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public class RepaymentScheduleRepository {
@@ -20,8 +21,8 @@ public class RepaymentScheduleRepository {
     }
 
     private final RowMapper<RepaymentSchedule> rowMapper = (rs, rowNum) -> RepaymentSchedule.builder()
-            .id(rs.getLong("id"))
-            .loanId(rs.getLong("loan_id"))
+            .id(rs.getObject("id", UUID.class))
+            .loanId(rs.getObject("loan_id", UUID.class))
             .installmentNumber(rs.getInt("installment_number"))
             .dueDate(rs.getDate("due_date").toLocalDate())
             .principalDue(rs.getBigDecimal("principal_due"))
@@ -54,18 +55,18 @@ public class RepaymentScheduleRepository {
         );
     }
 
-    public List<RepaymentSchedule> findByLoanId(Long loanId) {
+    public List<RepaymentSchedule> findByLoanId(UUID loanId) {
         String sql = "SELECT * FROM public.repayment_schedule WHERE loan_id = ? ORDER BY installment_number";
         return jdbcTemplate.query(sql, rowMapper, loanId);
     }
 
-    public List<RepaymentSchedule> findPendingByLoanId(Long loanId) {
+    public List<RepaymentSchedule> findPendingByLoanId(UUID loanId) {
         String sql = "SELECT * FROM public.repayment_schedule WHERE loan_id = ? " +
                 "AND status IN ('PENDING', 'PARTIALLY_PAID', 'OVERDUE') ORDER BY installment_number";
         return jdbcTemplate.query(sql, rowMapper, loanId);
     }
 
-    public void updatePayment(Long id, BigDecimal principalPaid, BigDecimal interestPaid,
+    public void updatePayment(UUID id, BigDecimal principalPaid, BigDecimal interestPaid,
                               BigDecimal lateFeePaid, String status, LocalDate paidDate) {
         String sql = "UPDATE public.repayment_schedule SET " +
                 "principal_paid = principal_paid + ?, " +
@@ -86,7 +87,7 @@ public class RepaymentScheduleRepository {
         );
     }
 
-    public void updateStatus(Long id, String status) {
+    public void updateStatus(UUID id, String status) {
         String sql = "UPDATE public.repayment_schedule SET status = ? WHERE id = ?";
         jdbcTemplate.update(sql, status, id);
     }

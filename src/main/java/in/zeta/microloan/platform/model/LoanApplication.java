@@ -7,24 +7,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanApplication {
-    private Long id;
+    private UUID id;
     private String applicationNumber;
-    private Long borrowerId;
-    private Long householdId;
-    private Long productId;
+    private UUID borrowerId;
+    private UUID householdId;
+    private UUID productId;
     private BigDecimal requestedAmount;
     private String purpose;
     private Integer preferredTenure;
     private BigDecimal householdAnnualIncome;
     private BigDecimal existingHouseholdLoanTotal;
     private LoanApplicationStatus status;
-    private Long approvedBy;
     private LocalDateTime approvedAt;
     private BigDecimal approvedAmount;
     private String rejectionReason;

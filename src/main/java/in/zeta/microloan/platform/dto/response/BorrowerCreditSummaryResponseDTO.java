@@ -6,13 +6,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class BorrowerCreditSummaryResponseDTO {
-    private Long borrowerId;
+    private UUID borrowerId;
     private String borrowerName;
     private Integer totalLoans;
     private Integer activeLoans;
@@ -20,7 +21,6 @@ public class BorrowerCreditSummaryResponseDTO {
     private BigDecimal totalDisbursed;
     private BigDecimal totalOutstanding;
     private BigDecimal totalPaid;
-    private Integer creditScore;
     private Boolean isVerified;
     private String status;
 }

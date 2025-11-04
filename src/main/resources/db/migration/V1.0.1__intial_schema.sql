@@ -1,6 +1,6 @@
 -- ============= HOUSEHOLDS TABLE =============
 CREATE TABLE IF NOT EXISTS public.households (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     household_number VARCHAR(50) UNIQUE NOT NULL,
     primary_address TEXT NOT NULL,
     pincode VARCHAR(10) NOT NULL,
@@ -22,12 +22,12 @@ CREATE INDEX IF NOT EXISTS idx_households_city ON public.households(city);
 
 -- ============= BORROWERS TABLE =============
 CREATE TABLE IF NOT EXISTS public.borrowers (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(200) NOT NULL,
     phone VARCHAR(15) UNIQUE NOT NULL,
     email VARCHAR(100),
     dob DATE NOT NULL,
-    household_id BIGINT REFERENCES public.households(id),
+    household_id UUID REFERENCES public.households(id),
     relationship_to_head VARCHAR(50),
     is_household_head BOOLEAN DEFAULT FALSE,
     individual_annual_income DECIMAL(15, 2),
@@ -51,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_borrowers_status ON public.borrowers(status);
 
 -- ============= LOAN PRODUCTS TABLE =============
 CREATE TABLE IF NOT EXISTS public.loan_products (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(200) NOT NULL,
     description TEXT,
     min_amount DECIMAL(15, 2) NOT NULL,
@@ -75,16 +75,15 @@ CREATE INDEX IF NOT EXISTS idx_loan_products_status ON public.loan_products(stat
 
 -- ============= LOAN APPLICATIONS TABLE =============
 CREATE TABLE IF NOT EXISTS public.loan_applications (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     application_number VARCHAR(50) UNIQUE NOT NULL,
-    borrower_id BIGINT NOT NULL REFERENCES public.borrowers(id),
-    product_id BIGINT NOT NULL REFERENCES public.loan_products(id),
+    borrower_id UUID NOT NULL REFERENCES public.borrowers(id),
+    product_id UUID NOT NULL REFERENCES public.loan_products(id),
     requested_amount DECIMAL(15, 2) NOT NULL,
     purpose TEXT,
     preferred_tenure INTEGER,
     status VARCHAR(30) NOT NULL DEFAULT 'PENDING_REVIEW',
     approved_amount DECIMAL(15, 2),
-    approved_by BIGINT,
     approved_at TIMESTAMP,
     rejection_reason TEXT,
     expires_at TIMESTAMP NOT NULL,
@@ -97,12 +96,12 @@ CREATE INDEX IF NOT EXISTS idx_loan_applications_status ON public.loan_applicati
 
 -- ============= LOANS TABLE =============
 CREATE TABLE IF NOT EXISTS public.loans (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     loan_number VARCHAR(50) UNIQUE NOT NULL,
-    application_id BIGINT REFERENCES public.loan_applications(id),
-    borrower_id BIGINT NOT NULL REFERENCES public.borrowers(id),
-    household_id BIGINT REFERENCES public.households(id),
-    product_id BIGINT NOT NULL REFERENCES public.loan_products(id),
+    application_id UUID REFERENCES public.loan_applications(id),
+    borrower_id UUID NOT NULL REFERENCES public.borrowers(id),
+    household_id UUID REFERENCES public.households(id),
+    product_id UUID NOT NULL REFERENCES public.loan_products(id),
     principal_amount DECIMAL(15, 2) NOT NULL,
     interest_rate DECIMAL(5, 2) NOT NULL,
     processing_fee DECIMAL(10, 2) DEFAULT 0,
@@ -136,8 +135,8 @@ CREATE INDEX IF NOT EXISTS idx_loans_disbursement_date ON public.loans(disbursem
 
 -- ============= REPAYMENT SCHEDULE TABLE =============
 CREATE TABLE IF NOT EXISTS public.repayment_schedule (
-    id BIGSERIAL PRIMARY KEY,
-    loan_id BIGINT NOT NULL REFERENCES public.loans(id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    loan_id UUID NOT NULL REFERENCES public.loans(id),
     installment_number INTEGER NOT NULL,
     due_date DATE NOT NULL,
     principal_due DECIMAL(15, 2) NOT NULL,
@@ -160,11 +159,11 @@ CREATE INDEX IF NOT EXISTS idx_repayment_schedule_due_date ON public.repayment_s
 
 -- ============= REPAYMENTS TABLE =============
 CREATE TABLE IF NOT EXISTS public.repayments (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     receipt_number VARCHAR(50) UNIQUE NOT NULL,
-    loan_id BIGINT NOT NULL REFERENCES public.loans(id),
-    borrower_id BIGINT NOT NULL REFERENCES public.borrowers(id),
-    household_id BIGINT REFERENCES public.households(id),
+    loan_id UUID NOT NULL REFERENCES public.loans(id),
+    borrower_id UUID NOT NULL REFERENCES public.borrowers(id),
+    household_id UUID REFERENCES public.households(id),
     amount DECIMAL(15, 2) NOT NULL,
     principal_paid DECIMAL(15, 2) DEFAULT 0,
     interest_paid DECIMAL(15, 2) DEFAULT 0,
@@ -186,8 +185,8 @@ CREATE INDEX IF NOT EXISTS idx_repayments_payment_date ON public.repayments(paym
 
 -- ============= OVERDUE TRACKING TABLE =============
 CREATE TABLE IF NOT EXISTS public.overdue_tracking (
-    id BIGSERIAL PRIMARY KEY,
-    loan_id BIGINT UNIQUE NOT NULL REFERENCES public.loans(id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    loan_id UUID UNIQUE NOT NULL REFERENCES public.loans(id),
     overdue_since DATE NOT NULL,
     overdue_days INTEGER NOT NULL,
     overdue_principal DECIMAL(15, 2) NOT NULL,
@@ -207,15 +206,15 @@ CREATE INDEX IF NOT EXISTS idx_overdue_tracking_days ON public.overdue_tracking(
 
 -- ============= COLLECTION ACTIVITIES TABLE =============
 CREATE TABLE IF NOT EXISTS public.collection_activities (
-    id BIGSERIAL PRIMARY KEY,
-    loan_id BIGINT NOT NULL REFERENCES public.loans(id),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    loan_id UUID NOT NULL REFERENCES public.loans(id),
     activity_type VARCHAR(50) NOT NULL,
     contact_method VARCHAR(30) NOT NULL,
     borrower_response TEXT,
     promise_to_pay_date DATE,
     payment_arrangement TEXT,
     notes TEXT,
-    assigned_to BIGINT,
+    assigned_to UUID,
     activity_date TIMESTAMP NOT NULL,
     next_follow_up_date DATE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),

@@ -11,12 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 @Component
 public class UserProvider implements ObjectProvider<BorrowerResponseDTO> {
-    public static final String OBJECT_TYPE = "borrower";
+    public static final String OBJECT_TYPE = "loan_user_profile";
     private final BorrowerService borrowerService;
     private static final SpectraLogger logger = OlympusSpectra.getLogger(UserProvider.class);
 
@@ -32,10 +33,10 @@ public class UserProvider implements ObjectProvider<BorrowerResponseDTO> {
     public CompletionStage<Optional<BorrowerResponseDTO>> getObject(JID jid, Realm realm, Long tenantID) {
         return CompletableFuture.supplyAsync(() -> {
             BorrowerResponseDTO user = null;
-            Long userId = null;
+            UUID userId = null;
 
             try {
-                userId = Long.valueOf(jid.getNodeId());
+                userId = UUID.fromString(jid.getNodeId());
 
                 logger.info("Entry: Fetching user object")
                         .attr(BORROWER_ID, userId)
