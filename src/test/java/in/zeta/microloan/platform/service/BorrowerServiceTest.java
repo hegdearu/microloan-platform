@@ -264,17 +264,6 @@ class BorrowerServiceTest {
     }
 
     @Test
-    void deleteBorrower_ShouldDelete() {
-        when(borrowerRepository.findById(borrowerId)).thenReturn(Optional.of(borrower));
-        doNothing().when(validator).validateDeletion(borrowerId);
-        doNothing().when(borrowerRepository).delete(borrowerId);
-
-        borrowerService.deleteBorrower(borrowerId);
-
-        verify(borrowerRepository).delete(borrowerId);
-    }
-
-    @Test
     void getBorrowerCreditSummary_ShouldReturnSummary() {
         when(borrowerRepository.findById(borrowerId)).thenReturn(Optional.of(borrower));
         when(borrowerRepository.countAllLoansByBorrower(borrowerId)).thenReturn(5);

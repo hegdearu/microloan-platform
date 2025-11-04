@@ -4,6 +4,7 @@ import in.zeta.microloan.platform.dto.request.LoanApplicationRequestDTO;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.Borrower;
+import in.zeta.microloan.platform.model.LoanApplication;
 import in.zeta.microloan.platform.model.LoanProduct;
 import in.zeta.microloan.platform.model.enums.LoanProductStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,9 +131,12 @@ class LoanApplicationValidatorTest {
     @Test
     void validateApproveAmount_WithValidAmount_ShouldPass() {
         BigDecimal approvedAmount = new BigDecimal("50000");
+        LoanApplication application = LoanApplication.builder()
+                .requestedAmount(new BigDecimal("60000"))
+                .build();
 
         assertDoesNotThrow(() ->
-                validator.validateApproveAmount(approvedAmount, product)
+                validator.validateApproveAmount(approvedAmount, product, application)
         );
     }
 
@@ -140,8 +144,12 @@ class LoanApplicationValidatorTest {
     void validateApproveAmount_WithAmountOutOfRange_ShouldThrowException() {
         BigDecimal approvedAmount = new BigDecimal("150000");
 
+        LoanApplication application = LoanApplication.builder()
+                .requestedAmount(new BigDecimal("600000"))
+                .build();
+
         ValidationException exception = assertThrows(ValidationException.class, () ->
-                validator.validateApproveAmount(approvedAmount, product)
+                validator.validateApproveAmount(approvedAmount, product, application)
         );
 
         assertTrue(exception.getMessage().contains("between"));

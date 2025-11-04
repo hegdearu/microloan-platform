@@ -284,7 +284,7 @@ class LoanApplicationServiceTest {
         BigDecimal approvedAmount = new BigDecimal("45000");
         when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        doNothing().when(validator).validateApproveAmount(approvedAmount, product);
+        doNothing().when(validator).validateApproveAmount(approvedAmount, product, application);
         doNothing().when(applicationRepository).approve(applicationId, approvedAmount);
         doNothing().when(atroposEventPublisher).publishApplicationApprovedEvent(any());
         when(mapper.toResponse(any())).thenReturn(responseDTO);
@@ -345,7 +345,7 @@ class LoanApplicationServiceTest {
         when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         doThrow(new ValidationException("Amount out of range"))
-                .when(validator).validateApproveAmount(approvedAmount, product);
+                .when(validator).validateApproveAmount(approvedAmount, product, application);
 
         assertThrows(ValidationException.class, () ->
                 applicationService.approveApplication(applicationId, approvedAmount)
