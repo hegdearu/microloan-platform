@@ -1,6 +1,7 @@
 package in.zeta.microloan.platform.dto.request;
 
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
+@Builder
 public class BorrowerRegistrationRequestDTO {
 
     @NotBlank(message = "Name is required")

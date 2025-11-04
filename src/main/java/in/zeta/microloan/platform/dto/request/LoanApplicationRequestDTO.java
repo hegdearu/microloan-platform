@@ -1,11 +1,13 @@
 package in.zeta.microloan.platform.dto.request;
 
+import lombok.Builder;
 import lombok.Data;
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
+@Builder
 public class LoanApplicationRequestDTO {
 
     @NotNull(message = "Borrower ID is required")
