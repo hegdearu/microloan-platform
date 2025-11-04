@@ -57,22 +57,6 @@ public class BorrowerService {
 
         validator.validateRegistration(dto);
 
-        if (dto.getHouseholdId() != null) {
-            var householdOpt = householdRepository.findById(dto.getHouseholdId());
-            if (householdOpt.isEmpty()) {
-                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_FOUND")
-                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
-                        .log();
-                throw new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND);
-            }
-            if (!Boolean.TRUE.equals(householdOpt.get().getIsVerified())) {
-                spectraLogger.warn("BORROWER_REGISTER_HOUSEHOLD_NOT_VERIFIED")
-                        .attr(HOUSEHOLD_ID, dto.getHouseholdId())
-                        .log();
-                throw new ResourceNotFoundException(HOUSEHOLD_NOT_VERIFIED);
-            }
-        }
-
         Borrower borrower = Borrower.builder()
                 .name(dto.getName())
                 .phone(dto.getPhone())

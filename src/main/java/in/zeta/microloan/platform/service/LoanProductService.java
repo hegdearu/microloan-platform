@@ -62,13 +62,12 @@ public class LoanProductService {
                 .status(LoanProductStatus.ACTIVE)
                 .build();
 
-        UUID id = productRepository.create(product);
-        product.setId(id);
+        LoanProduct savedProduct = productRepository.create(product);
 
         spectraLogger.info("LOAN_PRODUCT_CREATE_SUCCESS")
-                .attr("productId", id)
+                .attr("productId", savedProduct.getId())
                 .log();
-        return mapper.toResponse(product);
+        return mapper.toResponse(savedProduct);
     }
 
     public List<LoanProductResponseDTO> getAllActiveProducts() {

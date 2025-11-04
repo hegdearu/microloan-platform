@@ -54,19 +54,19 @@ public class HouseholdService {
                 .state(dto.getState())
                 .totalAnnualIncome(dto.getTotalAnnualIncome())
                 .incomeProofType(dto.getIncomeProofType())
-                .totalMembers(1)
+                .totalMembers(dto.getTotalMembers())
                 .householdType(dto.getHouseholdType())
                 .isVerified(false)
                 .build();
 
-        Household stored = householdRepository.create(household);
+        Household storedHousehold = householdRepository.create(household);
 
         spectraLogger.info("HOUSEHOLD_CREATE_SUCCESS")
-                .attr("householdId", stored.getId())
-                .attr("householdNumber", stored.getHouseholdNumber())
+                .attr("householdId", storedHousehold.getId())
+                .attr("householdNumber", storedHousehold.getHouseholdNumber())
                 .log();
 
-        return mapper.toResponse(stored);
+        return mapper.toResponse(storedHousehold);
     }
 
     public HouseholdResponseDTO getHouseholdById(UUID id) {

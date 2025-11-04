@@ -1,9 +1,6 @@
 package in.zeta.microloan.platform.dto.request;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Data;
 
@@ -30,6 +27,9 @@ public class HouseholdRegistrationRequestDTO {
     @DecimalMin(value = "0.00", message = "Income must be positive")
     private BigDecimal totalAnnualIncome;
 
+    @NotNull(message = "Number of members is required")
+    @Min(value = 1, message = "There must be at least one member in the household")
+    private Integer totalMembers;
     private String incomeProofType;
     private String householdType;
 }
