@@ -3,6 +3,7 @@ package in.zeta.microloan.platform.service.validator;
 import in.zeta.microloan.platform.dto.request.BorrowerRegistrationRequestDTO;
 import in.zeta.microloan.platform.dto.request.BorrowerUpdateRequestDTO;
 import in.zeta.microloan.platform.exception.BusinessRuleException;
+import in.zeta.microloan.platform.exception.Error;
 import in.zeta.microloan.platform.exception.ResourceNotFoundException;
 import in.zeta.microloan.platform.exception.ValidationException;
 import in.zeta.microloan.platform.model.Borrower;
@@ -98,7 +99,7 @@ class BorrowerValidatorTest {
                 validator.validateRegistration(registrationDTO)
         );
 
-        assertTrue(exception.getMessage().contains("Household not found"));
+        assertTrue(exception.getMessage().contains(Error.HOUSEHOLD_NOT_FOUND.name()));
     }
 
     @Test

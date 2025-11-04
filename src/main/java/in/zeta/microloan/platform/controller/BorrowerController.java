@@ -149,19 +149,6 @@ public class BorrowerController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{borrowerId}")
-    @SandboxAuthorizedSync(action = "user.delete", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
-    public ResponseEntity<Void> deleteBorrower(@PathVariable UUID borrowerId) {
-        spectraLogger.info("BORROWER_DELETE_REQUEST")
-                .attr(BORROWER_ID, borrowerId)
-                .log();
-        borrowerService.deleteBorrower(borrowerId);
-        spectraLogger.info("BORROWER_DELETE_SUCCESS")
-                .attr(BORROWER_ID, borrowerId)
-                .log();
-        return ResponseEntity.noContent().build();
-    }
-
     @GetMapping("/{borrowerId}/credit-summary")
     @SandboxAuthorizedSync(action = "user.get", object = "$$borrowers$$@" + UserProvider.OBJECT_TYPE + ".cipher.app", tenantID = "1001034")
     public ResponseEntity<BorrowerCreditSummaryResponseDTO> getBorrowerCreditSummary(@PathVariable UUID borrowerId) {

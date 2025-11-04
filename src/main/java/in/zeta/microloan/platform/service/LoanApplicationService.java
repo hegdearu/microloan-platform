@@ -265,7 +265,7 @@ public class LoanApplicationService {
 
         // Validate using validator component
         try {
-            validator.validateApproveAmount(approvedAmount, product);
+            validator.validateApproveAmount(approvedAmount, product, application);
         } catch (ValidationException e) {
             spectraLogger.warn("LOAN_APPLICATION_APPROVE_AMOUNT_OUT_OF_RANGE")
                     .attr(APPROVED_AMOUNT, approvedAmount)

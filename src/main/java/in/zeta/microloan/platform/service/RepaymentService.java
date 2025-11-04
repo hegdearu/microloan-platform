@@ -150,7 +150,7 @@ public class RepaymentService {
 
         String message = null;
         if (advancePayment.compareTo(BigDecimal.ZERO) > 0) {
-            boolean anyPending = scheduleRepository.findPendingByLoanId(dto.getLoanId()).size() > 0;
+            boolean anyPending = !scheduleRepository.findPendingByLoanId(dto.getLoanId()).isEmpty();
             message = anyPending
                     ? "Advance Payment Balance: ₹ " + advancePayment.setScale(2) + " will adjust next EMI."
                     : "Credit balance ₹ " + advancePayment.setScale(2) + ".";
