@@ -6,7 +6,8 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan(
-        basePackages = {"in.zeta.springframework.boot.commons",
+        basePackages = {
+
                 "in.zeta.microloan.platform"
         })
 public class MicroloanPlatformApplication {
