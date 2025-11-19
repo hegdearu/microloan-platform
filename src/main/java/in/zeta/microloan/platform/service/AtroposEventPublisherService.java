@@ -3,24 +3,18 @@ package in.zeta.microloan.platform.service;
 import com.google.gson.Gson;
 import in.zeta.microloan.platform.model.*;
 import in.zeta.microloan.platform.producer.EventProducer;
-import in.zeta.oms.atropos.response.PublishEventResponse;
-import in.zeta.oms.atropos.response.PublishStatus;
-import in.zeta.spectra.capture.SpectraLogger;
-import olympus.trace.OlympusSpectra;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.UUID;
 
 import static in.zeta.microloan.platform.constants.LogConstants.*;
 
 @Service
-public class AtroposEventPublisherService {
+public abstract class AtroposEventPublisherService {
 
-    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(AtroposEventPublisherService.class);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final EventProducer eventProducer;
@@ -46,37 +40,7 @@ public class AtroposEventPublisherService {
         this.gson = gson;
     }
 
-    public void publishLoanIssuedEvent(Loan loan) {
-        try {
-            String eventData = buildLoanIssuedEventData(loan);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, loanIssuedTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("LOAN_ISSUED_EVENT_PUBLISH_FAILED")
-                        .attr(LOAN_ID, loan.getId())
-                        .attr(LOAN_NUMBER, loan.getLoanNumber())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("LOAN_ISSUED_EVENT_PUBLISHED")
-                    .attr(LOAN_ID, loan.getId())
-                    .attr(LOAN_NUMBER, loan.getLoanNumber())
-                    .attr(BORROWER_ID, loan.getBorrowerId())
-                    .attr(PRINCIPAL_AMOUNT, loan.getPrincipalAmount())
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("LOAN_ISSUED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(LOAN_ID, loan.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("LOAN_ISSUED_EVENT_PUBLISH_ERROR", e)
-                    .attr(LOAN_ID, loan.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishLoanIssuedEvent(Loan loan);
 
     private String buildLoanIssuedEventData(Loan loan) {
         return gson.toJson(Map.ofEntries(
@@ -100,39 +64,7 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishLoanRepaymentEvent(Repayment repayment, Loan loan) {
-        try {
-            String eventData = buildLoanRepaymentEventData(repayment, loan);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, loanRepaymentTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("LOAN_REPAYMENT_EVENT_PUBLISH_FAILED")
-                        .attr(REPAYMENT_ID, repayment.getId())
-                        .attr(RECEIPT_NUMBER, repayment.getReceiptNumber())
-                        .attr(LOAN_ID, loan.getId())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("LOAN_REPAYMENT_EVENT_PUBLISHED")
-                    .attr(REPAYMENT_ID, repayment.getId())
-                    .attr(RECEIPT_NUMBER, repayment.getReceiptNumber())
-                    .attr(LOAN_ID, loan.getId())
-                    .attr("amount", repayment.getAmount())
-                    .attr("paymentMethod", repayment.getPaymentMethod())
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("LOAN_REPAYMENT_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(REPAYMENT_ID, repayment.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("LOAN_REPAYMENT_EVENT_PUBLISH_ERROR", e)
-                    .attr(REPAYMENT_ID, repayment.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishLoanRepaymentEvent(Repayment repayment, Loan loan);
 
     private String buildLoanRepaymentEventData(Repayment repayment, Loan loan) {
         return gson.toJson(Map.ofEntries(
@@ -156,36 +88,7 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishLoanOverdueEvent(Loan loan, OverdueTracking overdueTracking) {
-        try {
-            String eventData = buildLoanOverdueEventData(loan, overdueTracking);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, loanOverdueTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("LOAN_OVERDUE_EVENT_PUBLISH_FAILED")
-                        .attr(LOAN_ID, loan.getId())
-                        .attr(OVERDUE_DAYS, overdueTracking.getOverdueDays())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("LOAN_OVERDUE_EVENT_PUBLISHED")
-                    .attr(LOAN_ID, loan.getId())
-                    .attr(OVERDUE_DAYS, overdueTracking.getOverdueDays())
-                    .attr("totalDue", overdueTracking.getTotalDue())
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("LOAN_OVERDUE_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(LOAN_ID, loan.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("LOAN_OVERDUE_EVENT_PUBLISH_ERROR", e)
-                    .attr(LOAN_ID, loan.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishLoanOverdueEvent(Loan loan, OverdueTracking overdueTracking);
 
     private String buildLoanOverdueEventData(Loan loan, OverdueTracking overdueTracking) {
         return gson.toJson(Map.ofEntries(
@@ -208,34 +111,7 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishLoanCancelledEvent(Loan loan, String reason) {
-        try {
-            String eventData = buildLoanCancelledEventData(loan, reason);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, loanCancelledTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("LOAN_CANCELLED_EVENT_PUBLISH_FAILED")
-                        .attr(LOAN_ID, loan.getId())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("LOAN_CANCELLED_EVENT_PUBLISHED")
-                    .attr(LOAN_ID, loan.getId())
-                    .attr("reason", reason)
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("LOAN_CANCELLED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(LOAN_ID, loan.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("LOAN_CANCELLED_EVENT_PUBLISH_ERROR", e)
-                    .attr(LOAN_ID, loan.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishLoanCancelledEvent(Loan loan, String reason);
 
     private String buildLoanCancelledEventData(Loan loan, String reason) {
         return gson.toJson(Map.ofEntries(
@@ -249,34 +125,7 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishLoanClosedEvent(Loan loan) {
-        try {
-            String eventData = buildLoanClosedEventData(loan);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, loanClosedTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("LOAN_CLOSED_EVENT_PUBLISH_FAILED")
-                        .attr(LOAN_ID, loan.getId())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("LOAN_CLOSED_EVENT_PUBLISHED")
-                    .attr(LOAN_ID, loan.getId())
-                    .attr("totalPaid", loan.getTotalPaid())
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("LOAN_CLOSED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(LOAN_ID, loan.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("LOAN_CLOSED_EVENT_PUBLISH_ERROR", e)
-                    .attr(LOAN_ID, loan.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishLoanClosedEvent(Loan loan);
 
     private String buildLoanClosedEventData(Loan loan) {
         return gson.toJson(Map.ofEntries(
@@ -292,33 +141,7 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishApplicationApprovedEvent(LoanApplication application) {
-        try {
-            String eventData = buildApplicationApprovedEventData(application);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, applicationApprovedTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_FAILED")
-                        .attr(APPLICATION_ID, application.getId())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("APPLICATION_APPROVED_EVENT_PUBLISHED")
-                    .attr(APPLICATION_ID, application.getId())
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(APPLICATION_ID, application.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("APPLICATION_APPROVED_EVENT_PUBLISH_ERROR", e)
-                    .attr(APPLICATION_ID, application.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishApplicationApprovedEvent(LoanApplication application);
 
     private String buildApplicationApprovedEventData(LoanApplication application) {
         return gson.toJson(Map.ofEntries(
@@ -333,34 +156,7 @@ public class AtroposEventPublisherService {
         ));
     }
 
-    public void publishApplicationRejectedEvent(LoanApplication application, String rejectionReason) {
-        try {
-            String eventData = buildApplicationRejectedEventData(application, rejectionReason);
-            PublishEventResponse response = eventProducer.publishEvent(eventData, applicationRejectedTopic)
-                    .toCompletableFuture().get();
-            if (response.getStatus() == PublishStatus.FAILED) {
-                spectraLogger.error("APPLICATION_REJECTED_EVENT_PUBLISH_FAILED")
-                        .attr(APPLICATION_ID, application.getId())
-                        .attr(STATUS, response.getStatus())
-                        .log();
-                return;
-            }
-            spectraLogger.info("APPLICATION_REJECTED_EVENT_PUBLISHED")
-                    .attr(APPLICATION_ID, application.getId())
-                    .attr("rejectionReason", rejectionReason)
-                    .log();
-        } catch (InterruptedException ie) {
-            spectraLogger.error("APPLICATION_REJECTED_EVENT_PUBLISH_INTERRUPTED", ie)
-                    .attr(APPLICATION_ID, application.getId())
-                    .log();
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            spectraLogger.error("APPLICATION_REJECTED_EVENT_PUBLISH_ERROR", e)
-                    .attr(APPLICATION_ID, application.getId())
-                    .attr(ERROR_MESSAGE, e.getMessage())
-                    .log();
-        }
-    }
+    public abstract void publishApplicationRejectedEvent(LoanApplication application, String rejectionReason);
 
     private String buildApplicationRejectedEventData(LoanApplication application, String rejectionReason) {
         return gson.toJson(Map.ofEntries(

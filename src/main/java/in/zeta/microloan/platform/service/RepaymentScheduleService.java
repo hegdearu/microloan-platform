@@ -3,8 +3,6 @@ package in.zeta.microloan.platform.service;
 import in.zeta.microloan.platform.model.enums.InstallmentStatus;
 import in.zeta.microloan.platform.model.RepaymentSchedule;
 import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
-import in.zeta.spectra.capture.SpectraLogger;
-import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,8 +12,6 @@ import java.util.UUID;
 
 @Service
 public class RepaymentScheduleService {
-
-    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(RepaymentScheduleService.class);
 
     private final RepaymentScheduleRepository scheduleRepository;
 
@@ -30,12 +26,6 @@ public class RepaymentScheduleService {
                                  int tenureMonths,
                                  BigDecimal emiAmount,
                                  LocalDate firstDueDate) {
-
-        spectraLogger.info("REPAYMENT_SCHEDULE_GENERATE_START")
-                .attr("loanId", loanId)
-                .attr("tenureMonths", tenureMonths)
-                .attr("emiAmount", emiAmount)
-                .log();
 
         BigDecimal monthlyInterestRate = interestRate.divide(
                 BigDecimal.valueOf(12 * 100), 10, java.math.RoundingMode.HALF_UP);
@@ -67,20 +57,8 @@ public class RepaymentScheduleService {
 
             scheduleRepository.create(schedule);
 
-            spectraLogger.info("REPAYMENT_SCHEDULE_INSTALLMENT_CREATED")
-                    .attr("loanId", loanId)
-                    .attr("installmentNumber", i)
-                    .attr("principalDue", principalDue)
-                    .attr("interestDue", interestDue)
-                    .log();
-
             remainingPrincipal = remainingPrincipal.subtract(principalDue);
             dueDate = dueDate.plusMonths(1);
         }
-
-        spectraLogger.info("REPAYMENT_SCHEDULE_GENERATE_COMPLETE")
-                .attr("loanId", loanId)
-                .attr("installments", tenureMonths)
-                .log();
     }
 }

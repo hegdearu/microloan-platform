@@ -7,8 +7,6 @@ import in.zeta.microloan.platform.model.RepaymentSchedule;
 import in.zeta.microloan.platform.repository.overduetracking.OverdueTrackingRepository;
 import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentScheduleRepository;
 import in.zeta.microloan.platform.repository.loan.LoanRepository;
-import in.zeta.spectra.capture.SpectraLogger;
-import olympus.trace.OlympusSpectra;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +21,6 @@ import java.util.Optional;
 
 @Component
 public class OverdueDetectionJob {
-
-    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(OverdueDetectionJob.class);
-
     private final LoanRepository loanRepository;
     private final RepaymentScheduleRepository scheduleRepository;
     private final OverdueTrackingRepository overdueRepository;
@@ -44,7 +39,6 @@ public class OverdueDetectionJob {
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void detectOverdueLoans() {
-        spectraLogger.info("OVERDUE_DETECTION_JOB_START").log();
         try {
             List<Loan> activeLoans = loanRepository.findByStatus("ACTIVE");
             int overdueCount = 0;
@@ -115,11 +109,6 @@ public class OverdueDetectionJob {
                         overdueRepository.update(existing);
                         overdueTracking = existing;
 
-                        spectraLogger.info("OVERDUE_TRACKING_UPDATE")
-                                .attr("loanId", loan.getId())
-                                .attr("overdueDays", overdueDays)
-                                .attr("totalDue", totalDue)
-                                .log();
                     } else {
                         OverdueTracking tracking = OverdueTracking.builder()
                                 .loanId(loan.getId())
@@ -136,11 +125,6 @@ public class OverdueDetectionJob {
                         overdueRepository.create(tracking);
                         overdueTracking = tracking;
 
-                        spectraLogger.info("OVERDUE_TRACKING_CREATE")
-                                .attr("loanId", loan.getId())
-                                .attr("overdueDays", overdueDays)
-                                .attr("totalDue", totalDue)
-                                .log();
                     }
 
                     atroposEventPublisher.publishLoanOverdueEvent(loan, overdueTracking);
@@ -148,14 +132,8 @@ public class OverdueDetectionJob {
                 }
             }
 
-            spectraLogger.info("OVERDUE_DETECTION_JOB_COMPLETE")
-                    .attr("processedLoans", activeLoans.size())
-                    .attr("overdueLoans", overdueCount)
-                    .log();
         } catch (Exception e) {
-            spectraLogger.error("OVERDUE_DETECTION_JOB_ERROR")
-                    .attr("message", e.getMessage())
-                    .log();
+
         }
     }
 

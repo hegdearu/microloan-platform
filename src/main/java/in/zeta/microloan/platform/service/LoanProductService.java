@@ -8,8 +8,6 @@ import in.zeta.microloan.platform.model.enums.LoanProductStatus;
 import in.zeta.microloan.platform.repository.loanproduct.LoanProductRepository;
 import in.zeta.microloan.platform.service.mappers.LoanProductMapper;
 import in.zeta.microloan.platform.service.validator.LoanProductValidator;
-import in.zeta.spectra.capture.SpectraLogger;
-import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +19,6 @@ import static in.zeta.microloan.platform.exception.Error.LOAN_PRODUCT_NOT_FOUND;
 
 @Service
 public class LoanProductService {
-
-    private static final SpectraLogger spectraLogger = OlympusSpectra.getLogger(LoanProductService.class);
     private final LoanProductRepository productRepository;
     private final LoanProductValidator validator;
     private final LoanProductMapper mapper;
@@ -37,11 +33,6 @@ public class LoanProductService {
 
     @Transactional
     public LoanProductResponseDTO createProduct(LoanProductRequestDTO dto) {
-        spectraLogger.info("LOAN_PRODUCT_CREATE_ATTEMPT")
-                .attr("name", dto.getName())
-                .attr("minAmount", dto.getMinAmount())
-                .attr("maxAmount", dto.getMaxAmount())
-                .log();
 
         validator.validate(dto);
 
@@ -64,9 +55,6 @@ public class LoanProductService {
 
         LoanProduct savedProduct = productRepository.create(product);
 
-        spectraLogger.info("LOAN_PRODUCT_CREATE_SUCCESS")
-                .attr("productId", savedProduct.getId())
-                .log();
         return mapper.toResponse(savedProduct);
     }
 

@@ -16,8 +16,6 @@ import in.zeta.microloan.platform.repository.repaymentschedule.RepaymentSchedule
 import in.zeta.microloan.platform.service.mappers.RepaymentMapper;
 import in.zeta.microloan.platform.service.mappers.RepaymentScheduleMapper;
 import in.zeta.microloan.platform.service.validator.RepaymentValidator;
-import in.zeta.spectra.capture.SpectraLogger;
-import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,8 +31,6 @@ import static in.zeta.microloan.platform.exception.Error.LOAN_NOT_FOUND;
 
 @Service
 public class RepaymentService {
-
-    private static final SpectraLogger log = OlympusSpectra.getLogger(RepaymentService.class);
 
     private final RepaymentRepository repaymentRepository;
     private final RepaymentScheduleRepository scheduleRepository;
@@ -62,19 +58,12 @@ public class RepaymentService {
 
     @Transactional
     public RepaymentResponseDTO recordRepayment(RepaymentRequestDTO dto, Long createdBy) {
-        log.info("REPAYMENT_PROCESS_START")
-                .attr("loanId", dto.getLoanId())
-                .attr("amount", dto.getAmount())
-                .attr("paymentDate", dto.getPaymentDate())
-                .attr("paymentMethod", dto.getPaymentMethod())
-                .log();
 
         Loan loan = loanRepository.findById(dto.getLoanId())
                 .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
 
         List<RepaymentSchedule> pendingSchedules = scheduleRepository.findPendingByLoanId(dto.getLoanId());
         if (pendingSchedules.isEmpty()) {
-            log.warn("REPAYMENT_NO_PENDING_INSTALLMENTS").attr("loanId", dto.getLoanId()).log();
             throw new BusinessRuleException("No pending installments found");
         }
 
@@ -110,12 +99,6 @@ public class RepaymentService {
                 scheduleRepository.updatePayment(schedule.getId(), principalDue, interestDue, lateFeeDue,
                         "PAID", LocalDate.now());
 
-                log.info("INSTALLMENT_PAID")
-                        .attr("scheduleId", schedule.getId())
-                        .attr("principalPaid", principalDue)
-                        .attr("interestPaid", interestDue)
-                        .attr("lateFeePaid", lateFeeDue)
-                        .log();
             } else {
                 BigDecimal lateFeePayment = remainingAmount.min(lateFeeDue);
                 remainingAmount = remainingAmount.subtract(lateFeePayment);
@@ -132,12 +115,6 @@ public class RepaymentService {
                 scheduleRepository.updatePayment(schedule.getId(), principalPayment, interestPayment, lateFeePayment,
                         "PARTIALLY_PAID", null);
 
-                log.info("INSTALLMENT_PARTIAL")
-                        .attr("scheduleId", schedule.getId())
-                        .attr("principalPaid", principalPayment)
-                        .attr("interestPaid", interestPayment)
-                        .attr("lateFeePaid", lateFeePayment)
-                        .log();
                 break;
             }
         }
@@ -184,27 +161,15 @@ public class RepaymentService {
         if (updatedLoan.getTotalOutstanding().compareTo(BigDecimal.ZERO) <= 0) {
             loanRepository.updateStatus(dto.getLoanId(), "CLOSED");
             atroposEventPublisher.publishLoanClosedEvent(loanRepository.findById(dto.getLoanId()).get());
-            log.info("REPAYMENT_LOAN_CLOSED").attr("loanId", dto.getLoanId()).log();
         } else if (updatedLoan.getStatus().name().equals("OVERDUE")) {
             boolean stillOverdue = scheduleRepository.findPendingByLoanId(dto.getLoanId()).stream()
                     .anyMatch(s -> LocalDate.now().isAfter(s.getDueDate().plusDays(loan.getGracePeriodDays())));
             if (!stillOverdue) {
                 loanRepository.updateStatus(dto.getLoanId(), "ACTIVE");
-                log.info("REPAYMENT_LOAN_STATUS_NORMALIZED").attr("loanId", dto.getLoanId()).log();
             }
         }
 
         atroposEventPublisher.publishLoanRepaymentEvent(repayment, loan);
-
-        log.info("REPAYMENT_PROCESS_COMPLETE")
-                .attr("repaymentId", repayment.getId())
-                .attr("loanId", dto.getLoanId())
-                .attr("principalPaidTotal", totalPrincipalPaid)
-                .attr("interestPaidTotal", totalInterestPaid)
-                .attr("lateFeePaidTotal", totalLateFeePaid)
-                .attr("advanceRemaining", advancePayment)
-                .attr("message", message)
-                .log();
 
         return repaymentMapper.toResponse(repayment, message);
     }

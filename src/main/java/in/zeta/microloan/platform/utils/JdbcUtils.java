@@ -1,13 +1,9 @@
 package in.zeta.microloan.platform.utils;
 
-import com.google.common.reflect.TypeToken;
 import in.zeta.microloan.platform.exception.DatabaseException;
-import in.zeta.spectra.capture.SpectraLogger;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import olympus.trace.OlympusSpectra;
 
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,17 +11,13 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static in.zeta.microloan.platform.constants.MicroloanPlatformConstants.KEY_NAME;
-import static in.zeta.microloan.platform.constants.MicroloanPlatformConstants.RESULT_SET;
 import static in.zeta.microloan.platform.utils.ObjectUtils.anyNull;
 
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class JdbcUtils {
 
-    private static final SpectraLogger LOGGER = OlympusSpectra.getLogger(JdbcUtils.class);
     private static final String DATABASE_ERROR_LOG_STRING = "Database error";
-
 
     public static String getString(ResultSet resultSet, String keyName) {
         if (anyNull(resultSet, keyName)) {
@@ -92,9 +84,6 @@ public final class JdbcUtils {
     }
 
     private static void logSqlException(ResultSet resultSet, String keyName, SQLException sqlException) throws DatabaseException {
-        LOGGER.error(DATABASE_ERROR_LOG_STRING, sqlException)
-                .attr(RESULT_SET, resultSet)
-                .attr(KEY_NAME, keyName)
-                .log();
+
     }
 }

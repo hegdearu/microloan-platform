@@ -13,8 +13,6 @@ import in.zeta.microloan.platform.repository.loanapplication.LoanApplicationRepo
 import in.zeta.microloan.platform.repository.loanproduct.LoanProductRepository;
 import in.zeta.microloan.platform.service.mappers.LoanMapper;
 import in.zeta.microloan.platform.service.validator.LoanValidator;
-import in.zeta.spectra.capture.SpectraLogger;
-import olympus.trace.OlympusSpectra;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +28,6 @@ import static in.zeta.microloan.platform.exception.Error.LOAN_NOT_FOUND;
 
 @Service
 public class LoanService {
-
-    private static final SpectraLogger log = OlympusSpectra.getLogger(LoanService.class);
 
     private final LoanRepository loanRepository;
     private final LoanProductRepository productRepository;
@@ -65,13 +61,6 @@ public class LoanService {
 
     @Transactional
     public LoanResponseDTO createLoan(LoanIssuanceRequestDTO dto, Long createdBy) {
-        log.info("LOAN_CREATE_ATTEMPT")
-                .attr("borrowerId", dto.getBorrowerId())
-                .attr("productId", dto.getProductId())
-                .attr("principalAmount", dto.getPrincipalAmount())
-                .attr("applicationId", dto.getApplicationId())
-                .attr("createdBy", createdBy)
-                .log();
 
         LoanApplication application = null;
         if (dto.getApplicationId() != null) {
@@ -144,29 +133,20 @@ public class LoanService {
                 .map(loanMapper::toResponse)
                 .orElse(loanMapper.toResponse(loan));
 
-        log.info("LOAN_CREATE_SUCCESS")
-                .attr(LOAN_ID, response.getId())
-                .attr("loanNumber", response.getLoanNumber())
-                .attr("emiAmount", response.getEmiAmount())
-                .log();
         return response;
     }
 
     public LoanResponseDTO getLoanById(UUID id) {
-        log.info("LOAN_FETCH_BY_ID_ATTEMPT").attr(LOAN_ID, id).log();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
-        log.info("LOAN_FETCH_BY_ID_SUCCESS").attr(LOAN_ID, id).log();
         return loanMapper.toResponse(loan);
     }
 
     public LoanDetailResponseDTO getLoanDetails(UUID id) {
-        log.info("LOAN_DETAILS_FETCH_ATTEMPT").attr(LOAN_ID, id).log();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
         Borrower borrower = borrowerRepository.findById(loan.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException(BORROWER_NOT_FOUND));
-        log.info("LOAN_DETAILS_FETCH_SUCCESS").attr(LOAN_ID, id).log();
         return loanMapper.toDetail(loan, borrower);
     }
 
@@ -175,7 +155,6 @@ public class LoanService {
                 .orElseThrow(() -> new ResourceNotFoundException(BORROWER_NOT_FOUND));
         List<LoanResponseDTO> result = loanRepository.findByBorrowerId(borrowerId).stream()
                 .map(loanMapper::toResponse).toList();
-        log.info("LOANS_BY_BORROWER_SUCCESS").attr("borrowerId", borrowerId).attr(COUNT, result.size()).log();
         return result;
     }
 
@@ -184,38 +163,31 @@ public class LoanService {
                 .orElseThrow(() -> new ResourceNotFoundException(HOUSEHOLD_NOT_FOUND));
         List<LoanResponseDTO> result = loanRepository.findByHouseholdId(householdId).stream()
                 .map(loanMapper::toResponse).toList();
-        log.info("LOANS_BY_HOUSEHOLD_SUCCESS").attr("householdId", householdId).attr(COUNT, result.size()).log();
         return result;
     }
 
     public List<LoanResponseDTO> getLoansByStatus(String status, int page, int limit) {
-        log.info("LOANS_BY_STATUS_ATTEMPT").attr(STATUS, status).attr("page", page).attr("limit", limit).log();
         LoanStatus.valueOf(status.toUpperCase());
         List<LoanResponseDTO> result = loanRepository.findByStatus(status.toUpperCase()).stream()
                 .skip((long) (page - 1) * limit)
                 .limit(limit)
                 .map(loanMapper::toResponse)
                 .toList();
-        log.info("LOANS_BY_STATUS_SUCCESS").attr(STATUS, status).attr(COUNT, result.size()).log();
         return result;
     }
 
     @Transactional
     public void cancelLoan(UUID id, String reason) {
-        log.info("LOAN_CANCEL_ATTEMPT").attr(LOAN_ID, id).attr("reason", reason).log();
         Loan loan = loanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(LOAN_NOT_FOUND));
         if (!(loan.getStatus() == LoanStatus.ACTIVE || loan.getStatus() == LoanStatus.DISBURSED)) {
-            log.warn("LOAN_CANCEL_STATUS_INVALID").attr(LOAN_ID, id).attr(STATUS, loan.getStatus().name()).log();
             throw new RuntimeException("Only active or disbursed loans can be cancelled");
         }
         if (loan.getTotalPaid().compareTo(BigDecimal.ZERO) > 0) {
-            log.warn("LOAN_CANCEL_HAS_PAYMENTS").attr(LOAN_ID, id).attr("totalPaid", loan.getTotalPaid()).log();
             throw new RuntimeException("Cannot cancel loan with payments already made");
         }
         loanRepository.updateStatus(id, "CANCELLED");
         atroposEventPublisher.publishLoanCancelledEvent(loan, reason);
-        log.info("LOAN_CANCEL_SUCCESS").attr(LOAN_ID, id).log();
     }
 
     private BigDecimal calculateProcessingFee(BigDecimal principalAmount, LoanProduct product) {
