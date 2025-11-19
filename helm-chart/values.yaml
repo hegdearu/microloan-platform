@@ -1,0 +1,69 @@
+nameOverride: zea-opc-b03-microloan-platform-aravind
+fullnameOverride: zea-opc-b03-microloan-platform-aravind
+clusterName: zea-opc-b03-microloan-platform-aravind
+
+replicaCount: 1
+
+hpa:
+  enabled: false
+
+disablePropertiesConfigMap: true
+
+image:
+  repository: 813361731051.dkr.ecr.ap-south-1.amazonaws.com
+  repositoryPath: zea-opc-b03-microloan-platform-aravind
+  pullPolicy: IfNotPresent
+  tag: 0.0.1-SNAPSHOT
+
+envs:
+  - name: environmentName
+    value: staging
+
+envProperties:
+  javaXms: 128M
+  javaXmx: 512M
+  APP_NAME: zea-opc-b03-microloan-platform-aravind
+  KINESIS_ACCESSKEY: vault:secrets/data/zone/common/logging#KINESIS_ACCESSKEY
+  KINESIS_SECRETKEY: vault:secrets/data/zone/common/logging#KINESIS_SECRETKEY
+  KINESIS_REGION: vault:secrets/data/zone/common/logging#KINESIS_REGION
+
+service:
+  port: 8080
+  targetPort: 8080
+  jolokiaPort: 8778
+  healthCheckPath: /health
+  livenessProbeInitialDelaySeconds: 90
+  readinessProbeInitialDelaySeconds: 90
+
+# Full health check URL: http://<<pod-ip>>:8080/health.check.path
+additionalPodAnnotations:
+  configmap.reloader.stakater.com/reload: "microloan-platform-aravind-env-configmap"
+  health.check.enable: "true"
+  health.check.module: http_2xx
+  health.check.path: "/health"
+
+httpHealthCheckServiceMonitor:
+  enabled: false
+
+serviceMonitor:
+  enabled: true
+
+resources:
+  limits:
+    memory: 2Gi
+  requests:
+    cpu: 1
+    memory: 1Gi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccountName: zea-opc-b03-microloan-platform-aravind
+
+olympusLabels:
+  olympusCluster: cluster
+  olympusClusterBU: bu
+  olympusClusterTeam: team-name
+  olympusZone: zone-name
+  olympusZoneEnv: zone-env
