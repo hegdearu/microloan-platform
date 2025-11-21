@@ -13,7 +13,7 @@ import java.util.Map;
 import static in.zeta.microloan.platform.constants.LogConstants.*;
 
 @Service
-public abstract class AtroposEventPublisherService {
+public class AtroposEventPublisherService {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -40,7 +40,9 @@ public abstract class AtroposEventPublisherService {
         this.gson = gson;
     }
 
-    public abstract void publishLoanIssuedEvent(Loan loan);
+    public void publishLoanIssuedEvent(Loan loan){
+
+    };
 
     private String buildLoanIssuedEventData(Loan loan) {
         return gson.toJson(Map.ofEntries(
@@ -64,7 +66,9 @@ public abstract class AtroposEventPublisherService {
         ));
     }
 
-    public abstract void publishLoanRepaymentEvent(Repayment repayment, Loan loan);
+    public void publishLoanRepaymentEvent(Repayment repayment, Loan loan){
+
+    }
 
     private String buildLoanRepaymentEventData(Repayment repayment, Loan loan) {
         return gson.toJson(Map.ofEntries(
@@ -88,7 +92,9 @@ public abstract class AtroposEventPublisherService {
         ));
     }
 
-    public abstract void publishLoanOverdueEvent(Loan loan, OverdueTracking overdueTracking);
+    public void publishLoanOverdueEvent(Loan loan, OverdueTracking overdueTracking){
+
+    }
 
     private String buildLoanOverdueEventData(Loan loan, OverdueTracking overdueTracking) {
         return gson.toJson(Map.ofEntries(
@@ -111,7 +117,9 @@ public abstract class AtroposEventPublisherService {
         ));
     }
 
-    public abstract void publishLoanCancelledEvent(Loan loan, String reason);
+    public void publishLoanCancelledEvent(Loan loan, String reason){
+
+    }
 
     private String buildLoanCancelledEventData(Loan loan, String reason) {
         return gson.toJson(Map.ofEntries(
@@ -125,7 +133,9 @@ public abstract class AtroposEventPublisherService {
         ));
     }
 
-    public abstract void publishLoanClosedEvent(Loan loan);
+    public void publishLoanClosedEvent(Loan loan){
+
+    }
 
     private String buildLoanClosedEventData(Loan loan) {
         return gson.toJson(Map.ofEntries(
@@ -141,7 +151,9 @@ public abstract class AtroposEventPublisherService {
         ));
     }
 
-    public abstract void publishApplicationApprovedEvent(LoanApplication application);
+    public void publishApplicationApprovedEvent(LoanApplication application){
+
+    }
 
     private String buildApplicationApprovedEventData(LoanApplication application) {
         return gson.toJson(Map.ofEntries(
@@ -156,7 +168,9 @@ public abstract class AtroposEventPublisherService {
         ));
     }
 
-    public abstract void publishApplicationRejectedEvent(LoanApplication application, String rejectionReason);
+    public void publishApplicationRejectedEvent(LoanApplication application, String rejectionReason){
+
+    }
 
     private String buildApplicationRejectedEventData(LoanApplication application, String rejectionReason) {
         return gson.toJson(Map.ofEntries(

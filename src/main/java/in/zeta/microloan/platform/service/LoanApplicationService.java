@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
-import static in.zeta.microloan.platform.constants.LogConstants.*;
-import static in.zeta.microloan.platform.constants.LogConstants.APPROVED_AMOUNT;
 import static in.zeta.microloan.platform.exception.Error.*;
 
 @Service
